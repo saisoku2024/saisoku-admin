@@ -25,6 +25,8 @@ const [sortField,setSortField] = useState("created_at");
 const [sortAsc,setSortAsc] = useState(false);
 
 const [showModal,setShowModal] = useState(false);
+const [showAddModal,setShowAddModal] = useState(false);
+
 const [editingProduct,setEditingProduct] = useState<any>(null);
 
 useEffect(()=>{
@@ -230,66 +232,19 @@ return(
 Products
 </h1>
 
-{/* ADD PRODUCT */}
+{/* ADD PRODUCT BUTTON */}
 
-<div className="bg-white p-6 rounded-xl shadow mb-8">
-
-<h2 className="text-lg mb-4">
-Add Product
-</h2>
-
-<div className="grid grid-cols-3 gap-4 max-w-6xl">
-
-<input
-className="border p-2 rounded"
-placeholder="Product Code"
-value={code}
-onChange={(e)=>setCode(e.target.value)}
-/>
-
-<input
-className="border p-2 rounded"
-placeholder="Product name"
-value={name}
-onChange={(e)=>setName(e.target.value)}
-/>
-
-<input
-className="border p-2 rounded"
-placeholder="Price normal"
-value={price}
-onChange={(e)=>setPrice(e.target.value)}
-/>
-
-<input
-className="border p-2 rounded"
-placeholder="Reseller discount"
-value={discount}
-onChange={(e)=>setDiscount(e.target.value)}
-/>
-
-<input
-className="border p-2 rounded"
-placeholder="Duration days"
-value={duration}
-onChange={(e)=>setDuration(e.target.value)}
-/>
-
-<textarea
-className="border p-2 rounded col-span-3"
-placeholder="Description"
-value={description}
-onChange={(e)=>setDescription(e.target.value)}
-/>
-
-</div>
+<div className="flex justify-between mb-4">
 
 <button
-onClick={addProduct}
-className="mt-4 bg-black text-white px-4 py-2 rounded"
+onClick={()=>setShowAddModal(true)}
+className="bg-black text-white px-4 py-2 rounded"
+
 >
-Add Product
-</button>
+
+* Add Product
+
+  </button>
 
 </div>
 
@@ -298,9 +253,10 @@ Add Product
 <button
 onClick={deleteSelected}
 className="bg-red-600 text-white px-4 py-2 rounded mb-4"
+
 >
-Delete Selected
-</button>
+
+Delete Selected </button>
 
 {/* TABLE */}
 
@@ -378,9 +334,10 @@ onClick={()=>toggleProduct(p.id,p.is_active)}
 className={`px-3 py-1 rounded text-white ${
 p.is_active ? "bg-green-500" : "bg-gray-500"
 }`}
+
 >
-{p.is_active ? "Active" : "Inactive"}
-</button>
+
+{p.is_active ? "Active" : "Inactive"} </button>
 
 </td>
 
@@ -389,16 +346,18 @@ p.is_active ? "bg-green-500" : "bg-gray-500"
 <button
 onClick={()=>startEdit(p)}
 className="bg-blue-500 text-white px-3 py-1 rounded"
+
 >
-Edit
-</button>
+
+Edit </button>
 
 <button
 onClick={()=>deleteProduct(p.id)}
 className="bg-red-500 text-white px-3 py-1 rounded"
+
 >
-Delete
-</button>
+
+Delete </button>
 
 </td>
 
@@ -424,9 +383,10 @@ page===1
 ? "bg-gray-300 text-gray-500"
 : "bg-gray-300"
 }`}
+
 >
-Prev
-</button>
+
+Prev </button>
 
 <div className="px-4 py-2">
 Page {page}
@@ -440,11 +400,92 @@ hasMore
 ? "bg-black text-white"
 : "bg-gray-300 text-gray-500 cursor-not-allowed"
 }`}
+
 >
-Next
+
+Next </button>
+
+</div>
+
+{/* ADD PRODUCT MODAL */}
+
+{showAddModal && (
+
+<div className="fixed inset-0 flex items-center justify-center">
+
+<div className="bg-white p-6 rounded-xl w-[460px] shadow-2xl">
+
+<h2 className="text-xl font-bold mb-4">
+Add Product
+</h2>
+
+<div className="grid grid-cols-2 gap-3">
+
+<input className="border p-2 rounded"
+placeholder="Product Code"
+value={code}
+onChange={(e)=>setCode(e.target.value)}
+/>
+
+<input className="border p-2 rounded"
+placeholder="Product name"
+value={name}
+onChange={(e)=>setName(e.target.value)}
+/>
+
+<input className="border p-2 rounded"
+placeholder="Price normal"
+value={price}
+onChange={(e)=>setPrice(e.target.value)}
+/>
+
+<input className="border p-2 rounded"
+placeholder="Reseller discount"
+value={discount}
+onChange={(e)=>setDiscount(e.target.value)}
+/>
+
+<input className="border p-2 rounded col-span-2"
+placeholder="Duration days"
+value={duration}
+onChange={(e)=>setDuration(e.target.value)}
+/>
+
+</div>
+
+<textarea
+className="border p-2 rounded w-full mt-3"
+placeholder="Description"
+value={description}
+onChange={(e)=>setDescription(e.target.value)}
+/>
+
+<div className="flex justify-end gap-3 mt-5">
+
+<button
+onClick={()=>setShowAddModal(false)}
+className="px-4 py-2 border rounded"
+>
+Cancel
+</button>
+
+<button
+onClick={()=>{
+addProduct()
+setShowAddModal(false)
+}}
+className="px-4 py-2 bg-green-600 text-white rounded"
+>
+Create Product
 </button>
 
 </div>
+
+</div>
+
+</div>
+
+)}
 
 {/* EDIT MODAL */}
 
