@@ -22,6 +22,9 @@ const pageSize = 10;
 const [sortField,setSortField] = useState("created_at");
 const [sortAsc,setSortAsc] = useState(false);
 
+const [showModal,setShowModal] = useState(false);
+const [editingProduct,setEditingProduct] = useState<any>(null);
+
 useEffect(()=>{
 fetchProducts();
 fetchStockCount();
@@ -41,7 +44,7 @@ setProducts(data || []);
 
 };
 
-/* FETCH STOCK COUNTER */
+/* FETCH STOCK */
 
 const fetchStockCount = async () => {
 
@@ -86,7 +89,7 @@ alert("Field tidak boleh kosong");
 return;
 }
 
-const {error} = await supabase
+await supabase
 .from("products")
 .insert({
 product_code:code,
@@ -100,11 +103,6 @@ tos_description:"No garansi sharing account",
 is_active:true
 });
 
-if(error){
-alert(error.message);
-return;
-}
-
 setCode("");
 setName("");
 setPrice("");
@@ -116,24 +114,43 @@ fetchProducts();
 
 };
 
+/* START EDIT */
+
+const startEdit = (p:any)=>{
+
+setEditingProduct(p);
+
+setCode(p.product_code || "");
+setName(p.name || "");
+setPrice(p.price_normal || "");
+setDiscount(p.reseller_discount || "");
+setDuration(p.duration_days || "");
+setDescription(p.description || "");
+
+setShowModal(true);
+
+};
+
 /* UPDATE PRODUCT */
 
-const updateProduct = async (id:any)=>{
+const updateProduct = async ()=>{
 
-const newPrice = prompt("New price?");
-const newDiscount = prompt("New reseller discount?");
-const newDuration = prompt("New duration days?");
-
-if(!newPrice || !newDuration) return;
+if(!editingProduct) return;
 
 await supabase
 .from("products")
 .update({
-price_normal:Number(newPrice),
-reseller_discount:Number(newDiscount || 0),
-duration_days:Number(newDuration)
+product_code:code,
+name:name,
+price_normal:Number(price),
+reseller_discount:Number(discount || 0),
+duration_days:Number(duration),
+description:description
 })
-.eq("id",id);
+.eq("id",editingProduct.id);
+
+setShowModal(false);
+setEditingProduct(null);
 
 fetchProducts();
 
@@ -195,7 +212,7 @@ fetchProducts();
 
 /* PAGINATION */
 
-const nextPage = ()=>{ setPage(page+1); };
+const nextPage = ()=> setPage(page+1);
 
 const prevPage = ()=>{
 if(page>1) setPage(page-1);
@@ -249,7 +266,8 @@ value={duration}
 onChange={(e)=>setDuration(e.target.value)}
 />
 
-<input className="border p-2 rounded"
+<textarea
+className="border p-2 rounded"
 placeholder="Description"
 value={description}
 onChange={(e)=>setDescription(e.target.value)}
@@ -352,9 +370,7 @@ className={`px-3 py-1 rounded text-white ${
 p.is_active ? "bg-green-500" : "bg-gray-500"
 }`}
 >
-
 {p.is_active ? "Active" : "Inactive"}
-
 </button>
 
 </td>
@@ -362,7 +378,7 @@ p.is_active ? "bg-green-500" : "bg-gray-500"
 <td className="p-3 flex gap-2">
 
 <button
-onClick={()=>updateProduct(p.id)}
+onClick={()=>startEdit(p)}
 className="bg-blue-500 text-white px-3 py-1 rounded"
 >
 Edit
@@ -410,6 +426,83 @@ Next
 </button>
 
 </div>
+
+{/* EDIT MODAL */}
+
+{showModal && (
+
+<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+
+<div className="bg-white p-6 rounded-xl w-[420px] shadow-xl">
+
+<h2 className="text-xl font-bold mb-4">
+Edit Product
+</h2>
+
+<div className="space-y-3">
+
+<input className="border p-2 rounded w-full"
+value={code}
+onChange={(e)=>setCode(e.target.value)}
+placeholder="Product Code"
+/>
+
+<input className="border p-2 rounded w-full"
+value={name}
+onChange={(e)=>setName(e.target.value)}
+placeholder="Name"
+/>
+
+<input className="border p-2 rounded w-full"
+value={price}
+onChange={(e)=>setPrice(e.target.value)}
+placeholder="Price"
+/>
+
+<input className="border p-2 rounded w-full"
+value={discount}
+onChange={(e)=>setDiscount(e.target.value)}
+placeholder="Discount"
+/>
+
+<input className="border p-2 rounded w-full"
+value={duration}
+onChange={(e)=>setDuration(e.target.value)}
+placeholder="Duration"
+/>
+
+<textarea
+className="border p-2 rounded w-full"
+value={description}
+onChange={(e)=>setDescription(e.target.value)}
+placeholder="Description"
+/>
+
+</div>
+
+<div className="flex justify-end gap-3 mt-5">
+
+<button
+onClick={()=>setShowModal(false)}
+className="px-4 py-2 border rounded"
+>
+Cancel
+</button>
+
+<button
+onClick={updateProduct}
+className="px-4 py-2 bg-blue-600 text-white rounded"
+>
+Update Product
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+)}
 
 </div>
 
