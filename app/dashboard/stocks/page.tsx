@@ -133,7 +133,129 @@ export default function StocksPage() {
     fetchStocks();
 
   };
+{editStockData && (
 
+<div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+
+<div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
+
+<h2 className="font-semibold text-lg">
+Edit Stock
+</h2>
+
+{/* PRODUCT */}
+
+<div>
+<label className="text-sm font-medium">Product</label>
+
+<select
+className="border p-2 rounded w-full"
+value={editStockData.product_id}
+onChange={(e)=>setEditStockData({
+...editStockData,
+product_id:e.target.value
+})}
+>
+
+{products.map(p=>(
+<option key={p.id} value={p.id}>
+{p.name}
+</option>
+))}
+
+</select>
+
+</div>
+
+{/* EMAIL */}
+
+<div>
+<label className="text-sm font-medium">Email</label>
+
+<input
+className="border p-2 rounded w-full"
+value={editStockData.email}
+onChange={(e)=>setEditStockData({
+...editStockData,
+email:e.target.value
+})}
+/>
+
+</div>
+
+{/* PASSWORD */}
+
+<div>
+<label className="text-sm font-medium">Password</label>
+
+<input
+className="border p-2 rounded w-full"
+value={editStockData.password}
+onChange={(e)=>setEditStockData({
+...editStockData,
+password:e.target.value
+})}
+/>
+
+</div>
+
+{/* PROFILE */}
+
+<div>
+<label className="text-sm font-medium">Profile</label>
+
+<input
+className="border p-2 rounded w-full"
+value={editStockData.profile}
+onChange={(e)=>setEditStockData({
+...editStockData,
+profile:e.target.value
+})}
+/>
+
+</div>
+
+{/* PIN */}
+
+<div>
+<label className="text-sm font-medium">PIN</label>
+
+<input
+className="border p-2 rounded w-full"
+value={editStockData.pin}
+onChange={(e)=>setEditStockData({
+...editStockData,
+pin:e.target.value
+})}
+/>
+
+</div>
+
+{/* ACTION */}
+
+<div className="flex justify-end gap-3 pt-2">
+
+<button
+onClick={()=>setEditStockData(null)}
+className="px-4 py-2 border rounded"
+>
+Cancel
+</button>
+
+<button
+onClick={updateStock}
+className="px-4 py-2 bg-blue-600 text-white rounded"
+>
+Update
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+)}
 
   /* ================= UPDATE STOCK ================= */
 
