@@ -2,538 +2,578 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function StocksPage(){
+export default function StocksPage() {
 
-const [products,setProducts] = useState<any[]>([]);
-const [stocks,setStocks] = useState<any[]>([]);
+  /* ================= STATE ================= */
 
-const [search,setSearch] = useState("");
-const [filterProduct,setFilterProduct] = useState("");
+  const [products, setProducts] = useState<any[]>([]);
+  const [stocks, setStocks] = useState<any[]>([]);
 
-const [email,setEmail] = useState("");
-const [password,setPassword] = useState("");
-const [profile,setProfile] = useState("");
-const [pin,setPin] = useState("");
-const [productId,setProductId] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterProduct, setFilterProduct] = useState("");
 
-const [showAddModal,setShowAddModal] = useState(false);
-const [editStockData,setEditStockData] = useState<any>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [profile, setProfile] = useState("");
+  const [pin, setPin] = useState("");
+  const [productId, setProductId] = useState("");
 
-const [csvFile,setCsvFile] = useState<any>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editStockData, setEditStockData] = useState<any>(null);
 
-const [page,setPage] = useState(1);
-const pageSize = 50;
+  const [csvFile, setCsvFile] = useState<any>(null);
 
-const [stats,setStats] = useState({
-available:0,
-sold:0
-});
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
 
-/* INIT */
+  const [stats, setStats] = useState({
+    available: 0,
+    sold: 0
+  });
 
-useEffect(()=>{
 
-fetchProducts();
-fetchStocks();
+  /* ================= INIT ================= */
 
-const channel = supabase
-.channel("stock-realtime")
-.on(
-"postgres_changes",
-{
-event:"*",
-schema:"public",
-table:"product_accounts"
-},
-()=> fetchStocks()
-)
-.subscribe();
+  useEffect(() => {
 
-return () => {
-  void supabase.removeChannel(channel);
-};
+    fetchProducts();
+    fetchStocks();
 
-},[page,search,filterProduct]);
+    const channel = supabase
+      .channel("stock-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "product_accounts"
+        },
+        () => fetchStocks()
+      )
+      .subscribe();
 
-/* FETCH PRODUCTS */
+    return () => {
+      void supabase.removeChannel(channel);
+    };
 
-const fetchProducts = async()=>{
+  }, [page, search, filterProduct]);
 
-const {data} = await supabase
-.from("products")
-.select("*")
-.order("name",{ascending:true});
 
-setProducts(data || []);
+  /* ================= FETCH PRODUCTS ================= */
 
-};
+  const fetchProducts = async () => {
 
-/* FETCH STOCK */
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .order("name", { ascending: true });
 
-const fetchStocks = async()=>{
+    setProducts(data || []);
 
-let query = supabase
-.from("product_accounts")
-.select(`*,products(name)`)
-.order("created_at",{ascending:false})
-.range((page-1)*pageSize,(page*pageSize)-1);
+  };
 
-if(search){
-query = query.ilike("email",`%${search}%`);
-}
 
-if(filterProduct){
-query = query.eq("product_id",filterProduct);
-}
+  /* ================= FETCH STOCK ================= */
 
-const {data} = await query;
+  const fetchStocks = async () => {
 
-const list = data || [];
+    let query = supabase
+      .from("product_accounts")
+      .select(`*,products(name)`)
+      .order("created_at", { ascending: false })
+      .range((page - 1) * pageSize, (page * pageSize) - 1);
 
-setStocks(list);
+    if (search) {
+      query = query.ilike("email", `%${search}%`);
+    }
 
-const available = list.filter(x=>x.status==="available").length;
-const sold = list.filter(x=>x.status==="sold").length;
+    if (filterProduct) {
+      query = query.eq("product_id", filterProduct);
+    }
 
-setStats({available,sold});
+    const { data } = await query;
 
-};
+    const list = data || [];
 
-/* ADD STOCK */
+    setStocks(list);
 
-const addStock = async()=>{
+    const available = list.filter(x => x.status === "available").length;
+    const sold = list.filter(x => x.status === "sold").length;
 
-if(!email || !password || !productId){
-alert("Field wajib diisi");
-return;
-}
+    setStats({ available, sold });
 
-await supabase
-.from("product_accounts")
-.insert({
-product_id:productId,
-email,
-password,
-profile,
-pin,
-status:"available"
-});
+  };
 
-setEmail("");
-setPassword("");
-setProfile("");
-setPin("");
 
-fetchStocks();
+  /* ================= ADD STOCK ================= */
 
-};
+  const addStock = async () => {
 
-/* UPDATE STOCK */
+    if (!email || !password || !productId) {
+      alert("Field wajib diisi");
+      return;
+    }
 
-const updateStock = async()=>{
+    await supabase
+      .from("product_accounts")
+      .insert({
+        product_id: productId,
+        email,
+        password,
+        profile,
+        pin,
+        status: "available"
+      });
 
-await supabase
-.from("product_accounts")
-.update({
-email:editStockData.email,
-password:editStockData.password,
-profile:editStockData.profile,
-pin:editStockData.pin
-})
-.eq("id",editStockData.id);
+    setEmail("");
+    setPassword("");
+    setProfile("");
+    setPin("");
 
-setEditStockData(null);
-fetchStocks();
+    fetchStocks();
 
-};
+  };
 
-/* CSV UPLOAD */
 
-const uploadCSV = async()=>{
+  /* ================= UPDATE STOCK ================= */
 
-if(!csvFile){
-alert("Pilih file CSV dulu");
-return;
-}
+  const updateStock = async () => {
 
-if(!productId){
-alert("Pilih product dulu");
-return;
-}
+    await supabase
+      .from("product_accounts")
+      .update({
+        email: editStockData.email,
+        password: editStockData.password,
+        profile: editStockData.profile,
+        pin: editStockData.pin
+      })
+      .eq("id", editStockData.id);
 
-const text = await csvFile.text();
-const rows = text.split("\n");
+    setEditStockData(null);
+    fetchStocks();
 
-for(let i=1;i<rows.length;i++){
+  };
 
-const clean = rows[i].replace("\r","").trim();
-if(!clean) continue;
 
-const cols = clean.split(",");
+  /* ================= CSV UPLOAD ================= */
 
-await supabase
-.from("product_accounts")
-.insert({
-product_id:productId,
-email:cols,
-password:cols,
-profile:cols,
-pin:cols,
-status:"available"
-});
+  const uploadCSV = async () => {
 
-}
+    if (!csvFile) {
+      alert("Pilih file CSV dulu");
+      return;
+    }
 
-alert("Upload selesai");
-fetchStocks();
+    if (!productId) {
+      alert("Pilih product dulu");
+      return;
+    }
 
-};
+    const text = await csvFile.text();
+    const rows = text.split("\n");
 
-/* DELETE */
+    for (let i = 1; i < rows.length; i++) {
 
-const deleteStock = async(id:any)=>{
+      const clean = rows[i].replace("\r", "").trim();
+      if (!clean) continue;
 
-if(!confirm("Delete stock?")) return;
+      const cols = clean.split(",");
 
-await supabase
-.from("product_accounts")
-.delete()
-.eq("id",id);
+      await supabase
+        .from("product_accounts")
+        .insert({
+          product_id: productId,
+          email: cols[0],
+          password: cols[1],
+          profile: cols[2],
+          pin: cols[3],
+          status: "available"
+        });
 
-fetchStocks();
+    }
 
-};
+    alert("Upload selesai");
+    fetchStocks();
 
-const deleteAllStock = async()=>{
+  };
 
-if(!confirm("Delete ALL stock?")) return;
 
-await supabase
-.from("product_accounts")
-.delete()
-.not("id","is",null);
+  /* ================= DELETE ================= */
 
-fetchStocks();
+  const deleteStock = async (id: any) => {
 
-};
+    if (!confirm("Delete stock?")) return;
 
-const deleteByProduct = async()=>{
+    await supabase
+      .from("product_accounts")
+      .delete()
+      .eq("id", id);
 
-if(!filterProduct){
-alert("Pilih produk dulu");
-return;
-}
+    fetchStocks();
 
-await supabase
-.from("product_accounts")
-.delete()
-.eq("product_id",filterProduct);
+  };
 
-fetchStocks();
+  const deleteAllStock = async () => {
 
-};
+    if (!confirm("Delete ALL stock?")) return;
 
-/* PAGINATION */
+    await supabase
+      .from("product_accounts")
+      .delete()
+      .not("id", "is", null);
 
-const nextPage = ()=>{
-if(stocks.length === pageSize) setPage(page+1);
-};
+    fetchStocks();
 
-const prevPage = ()=>{
-if(page>1) setPage(page-1);
-};
+  };
 
-/* UI */
+  const deleteByProduct = async () => {
 
-return(
+    if (!filterProduct) {
+      alert("Pilih produk dulu");
+      return;
+    }
 
-<div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 overflow-hidden">
+    await supabase
+      .from("product_accounts")
+      .delete()
+      .eq("product_id", filterProduct);
 
-{/* BACKGROUND PREMIUM APPS */}
+    fetchStocks();
 
-<div className="absolute inset-0 pointer-events-none opacity-20 blur-2xl flex flex-wrap gap-20 justify-center items-center">
+  };
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" className="h-20"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" className="h-16"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg" className="h-16"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" className="h-16"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" className="h-16"/>
 
-</div>
+  /* ================= PAGINATION ================= */
 
-<div className="max-w-6xl mx-auto space-y-5 relative z-10">
+  const nextPage = () => {
+    if (stocks.length === pageSize) setPage(page + 1);
+  };
 
-<h1 className="text-2xl font-bold">
-Stock Management
-</h1>
+  const prevPage = () => {
+    if (page > 1) setPage(page - 1);
+  };
 
-{/* STATS */}
 
-<div className="flex gap-4">
+  /* ================= UI ================= */
 
-<div className="bg-white px-5 py-3 rounded shadow text-sm font-medium">
-Available : {stats.available}
-</div>
+  return (
 
-<div className="bg-white px-5 py-3 rounded shadow text-sm font-medium">
-Sold : {stats.sold}
-</div>
+    <div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 overflow-hidden">
 
-</div>
+      {/* BACKGROUND APPS */}
 
-{/* ADD STOCK BUTTON */}
+      <div className="absolute inset-0 pointer-events-none opacity-20 blur-2xl flex flex-wrap gap-20 justify-center items-center">
 
-<button
-onClick={()=>setShowAddModal(true)}
-className="bg-black text-white px-4 py-2 rounded"
+        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" className="h-20" />
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" className="h-16" />
+        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg" className="h-16" />
+        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" className="h-16" />
+        <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" className="h-16" />
 
->
+      </div>
 
-* Add Stock
 
-  </button>
+      <div className="max-w-6xl mx-auto space-y-5 relative z-10">
 
-{/* CSV */}
+        <h1 className="text-2xl font-bold">Stock Management</h1>
 
-<div className="bg-white p-5 rounded-xl shadow">
 
-<h2 className="font-semibold mb-3">
-Bulk Upload CSV
-</h2>
+        {/* STATS */}
 
-<div className="flex gap-3">
+        <div className="flex gap-4">
 
-<input
-type="file"
-accept=".csv"
-onChange={(e)=>setCsvFile(e.target.files?.[0])}
-/>
+          <div className="bg-white px-5 py-3 rounded shadow text-sm font-medium">
+            Available : {stats.available}
+          </div>
 
-<button
-onClick={uploadCSV}
-className="bg-blue-600 text-white px-4 py-2 rounded"
+          <div className="bg-white px-5 py-3 rounded shadow text-sm font-medium">
+            Sold : {stats.sold}
+          </div>
 
->
+        </div>
 
-Upload </button>
 
-</div>
+        {/* ADD BUTTON */}
 
-<p className="text-xs text-gray-500 mt-2">
-format: email,password,profile,pin
-</p>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="bg-black text-white px-4 py-2 rounded"
+        >
+          + Add Stock
+        </button>
 
-</div>
 
-{/* FILTER */}
+        {/* CSV */}
 
-<div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow">
+        <div className="bg-white p-5 rounded-xl shadow">
 
-<input
-className="border p-2 rounded"
-placeholder="Search email..."
-value={search}
-onChange={(e)=>setSearch(e.target.value)}
-/>
+          <h2 className="font-semibold mb-3">
+            Bulk Upload CSV
+          </h2>
 
-<select
-className="border p-2 rounded"
-value={filterProduct}
-onChange={(e)=>setFilterProduct(e.target.value)}
+          <div className="flex gap-3">
 
->
+            <input
+              type="file"
+              accept=".csv"
+              onChange={(e) => setCsvFile(e.target.files?.[0])}
+            />
 
-<option value="">All Products</option>
+            <button
+              onClick={uploadCSV}
+              className="bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Upload
+            </button>
 
-{products.map(p=>(
+          </div>
 
-<option key={p.id} value={p.id}>{p.name}</option>
-))}
+          <p className="text-xs text-gray-500 mt-2">
+            format: email,password,profile,pin
+          </p>
 
-</select>
+        </div>
 
-<button
-onClick={deleteByProduct}
-className="bg-red-500 text-white px-3 py-2 rounded"
 
->
+        {/* FILTER */}
 
-Delete by Product </button>
+        <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow">
 
-<button
-onClick={deleteAllStock}
-className="bg-red-700 text-white px-3 py-2 rounded"
+          <input
+            className="border p-2 rounded"
+            placeholder="Search email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
->
+          <select
+            className="border p-2 rounded"
+            value={filterProduct}
+            onChange={(e) => setFilterProduct(e.target.value)}
+          >
 
-Delete ALL </button>
+            <option value="">All Products</option>
 
-</div>
+            {products.map(p => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
 
-{/* TABLE */}
+          </select>
 
-<table className="w-full bg-white rounded-xl shadow">
+          <button
+            onClick={deleteByProduct}
+            className="bg-red-500 text-white px-3 py-2 rounded"
+          >
+            Delete by Product
+          </button>
 
-<thead>
+          <button
+            onClick={deleteAllStock}
+            className="bg-red-700 text-white px-3 py-2 rounded"
+          >
+            Delete ALL
+          </button>
 
-<tr className="border-b bg-gray-50 text-sm">
+        </div>
 
-<th className="p-3 text-left">Product</th>
-<th className="p-3 text-left">Email</th>
-<th className="p-3 text-left">Profile</th>
-<th className="p-3 text-left">PIN</th>
-<th className="p-3 text-left">Status</th>
-<th className="p-3 text-left">Action</th>
 
-</tr>
+        {/* TABLE */}
 
-</thead>
+        <table className="w-full bg-white rounded-xl shadow">
 
-<tbody>
+          <thead>
 
-{stocks.map((s)=>(
+            <tr className="border-b bg-gray-50 text-sm">
 
-<tr key={s.id} className="border-b hover:bg-gray-50 text-sm">
+              <th className="p-3 text-left">Product</th>
+              <th className="p-3 text-left">Email</th>
+              <th className="p-3 text-left">Profile</th>
+              <th className="p-3 text-left">PIN</th>
+              <th className="p-3 text-left">Status</th>
+              <th className="p-3 text-left">Action</th>
 
-<td className="p-3">{s.products?.name}</td>
-<td className="p-3">{s.email}</td>
-<td className="p-3">{s.profile}</td>
-<td className="p-3">{s.pin}</td>
-<td className="p-3">{s.status}</td>
+            </tr>
 
-<td className="p-3 flex gap-2">
+          </thead>
 
-<button
-onClick={()=>setEditStockData(s)}
-className="bg-blue-500 text-white px-3 py-1 rounded"
+          <tbody>
 
->
+            {stocks.map((s) => (
 
-Edit </button>
+              <tr key={s.id} className="border-b hover:bg-gray-50 text-sm">
 
-<button
-onClick={()=>deleteStock(s.id)}
-className="bg-red-500 text-white px-3 py-1 rounded"
+                <td className="p-3">{s.products?.name}</td>
+                <td className="p-3">{s.email}</td>
+                <td className="p-3">{s.profile}</td>
+                <td className="p-3">{s.pin}</td>
+                <td className="p-3">{s.status}</td>
 
->
+                <td className="p-3 flex gap-2">
 
-Delete </button>
+                  <button
+                    onClick={() => setEditStockData(s)}
+                    className="bg-blue-500 text-white px-3 py-1 rounded"
+                  >
+                    Edit
+                  </button>
 
-</td>
+                  <button
+                    onClick={() => deleteStock(s.id)}
+                    className="bg-red-500 text-white px-3 py-1 rounded"
+                  >
+                    Delete
+                  </button>
 
-</tr>
+                </td>
 
-))}
+              </tr>
 
-</tbody>
+            ))}
 
-</table>
+          </tbody>
 
-{/* PAGINATION */}
+        </table>
 
-<div className="flex gap-3 items-center">
 
-<button
-onClick={prevPage}
-className="bg-gray-300 px-4 py-2 rounded"
+        {/* PAGINATION */}
 
->
+        <div className="flex gap-3 items-center">
 
-Prev </button>
+          <button
+            onClick={prevPage}
+            className="bg-gray-300 px-4 py-2 rounded"
+          >
+            Prev
+          </button>
 
-<div>Page {page}</div>
+          <div>Page {page}</div>
 
-<button
-onClick={nextPage}
-className="bg-black text-white px-4 py-2 rounded"
+          <button
+            onClick={nextPage}
+            className="bg-black text-white px-4 py-2 rounded"
+          >
+            Next
+          </button>
 
->
+        </div>
 
-Next </button>
-
-</div>
-
-</div>
-
-{/* ADD STOCK MODAL */}
-
-{showAddModal && (
+      </div>
+{editStockData && (
 
 <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
 
 <div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
 
 <h2 className="font-semibold text-lg">
-Add Stock
+Edit Stock
 </h2>
+
+{/* PRODUCT */}
 
 <div>
 <label className="text-sm font-medium">Product</label>
+
 <select
 className="border p-2 rounded w-full"
-value={productId}
-onChange={(e)=>setProductId(e.target.value)}
+value={editStockData.product_id}
+onChange={(e)=>setEditStockData({
+...editStockData,
+product_id:e.target.value
+})}
 >
-<option value="">Select Product</option>
+
 {products.map(p=>(
-<option key={p.id} value={p.id}>{p.name}</option>
+<option key={p.id} value={p.id}>
+{p.name}
+</option>
 ))}
+
 </select>
+
 </div>
+
+{/* EMAIL */}
 
 <div>
 <label className="text-sm font-medium">Email</label>
+
 <input
 className="border p-2 rounded w-full"
-value={email}
-onChange={(e)=>setEmail(e.target.value)}
+value={editStockData.email}
+onChange={(e)=>setEditStockData({
+...editStockData,
+email:e.target.value
+})}
 />
+
 </div>
+
+{/* PASSWORD */}
 
 <div>
 <label className="text-sm font-medium">Password</label>
+
 <input
 className="border p-2 rounded w-full"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
+value={editStockData.password}
+onChange={(e)=>setEditStockData({
+...editStockData,
+password:e.target.value
+})}
 />
+
 </div>
+
+{/* PROFILE */}
 
 <div>
 <label className="text-sm font-medium">Profile</label>
+
 <input
 className="border p-2 rounded w-full"
-value={profile}
-onChange={(e)=>setProfile(e.target.value)}
+value={editStockData.profile}
+onChange={(e)=>setEditStockData({
+...editStockData,
+profile:e.target.value
+})}
 />
+
 </div>
+
+{/* PIN */}
 
 <div>
 <label className="text-sm font-medium">PIN</label>
+
 <input
 className="border p-2 rounded w-full"
-value={pin}
-onChange={(e)=>setPin(e.target.value)}
+value={editStockData.pin}
+onChange={(e)=>setEditStockData({
+...editStockData,
+pin:e.target.value
+})}
 />
+
 </div>
+
+{/* ACTION */}
 
 <div className="flex justify-end gap-3 pt-2">
 
 <button
-onClick={()=>setShowAddModal(false)}
+onClick={()=>setEditStockData(null)}
 className="px-4 py-2 border rounded"
 >
 Cancel
 </button>
 
 <button
-onClick={()=>{
-addStock()
-setShowAddModal(false)
-}}
-className="px-4 py-2 bg-green-600 text-white rounded"
+onClick={updateStock}
+className="px-4 py-2 bg-blue-600 text-white rounded"
 >
-Add Stock
+Update
 </button>
 
 </div>
@@ -543,3 +583,8 @@ Add Stock
 </div>
 
 )}
+    </div>
+
+  );
+
+}
