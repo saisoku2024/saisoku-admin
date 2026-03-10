@@ -25,12 +25,10 @@ Legend
 )
 
 const chartOptions = {
-responsive: true,
-maintainAspectRatio: false,
+responsive:true,
+maintainAspectRatio:false,
 plugins:{
-legend:{
-display:true
-}
+legend:{display:true}
 }
 }
 
@@ -52,6 +50,8 @@ active:0,
 expiring:0,
 expired:0
 })
+
+/* ================= META ================= */
 
 async function loadMeta(){
 
@@ -92,13 +92,13 @@ active:0
 
 }
 
+/* ================= DAILY CHART ================= */
+
 async function loadDailyChart(){
 
 const {data} = await supabase
 .from("transactions")
-.select(`
-products(name)
-`)
+.select(`products(name)`)
 
 const counts:any = {}
 
@@ -119,12 +119,14 @@ datasets:[
 {
 label:"Daily Sales",
 data:values,
-backgroundColor:"#2563eb"
+backgroundColor:"#3b82f6"
 }
 ]
 })
 
 }
+
+/* ================= MONTHLY CHART ================= */
 
 async function loadMonthlyChart(){
 
@@ -153,21 +155,21 @@ datasets:[
 {
 label:"Monthly Revenue",
 data:values,
-backgroundColor:"#16a34a"
+backgroundColor:"#22c55e"
 }
 ]
 })
 
 }
 
+/* ================= ACCOUNT STATUS ================= */
+
 async function loadStatus(){
 
 const {data} = await supabase
 .from("transactions")
-.select(`
-duration_days,
-product_accounts(sold_at)
-`)
+.select(`duration_days,
+product_accounts(sold_at)`)
 
 let active = 0
 let expiring = 0
@@ -198,6 +200,8 @@ expired
 
 }
 
+/* ================= INIT ================= */
+
 useEffect(()=>{
 
 loadMeta()
@@ -207,84 +211,102 @@ loadStatus()
 
 },[])
 
+/* ================= UI ================= */
+
 return(
 
-<div className="space-y-6">
+<div className="space-y-8">
 
-<h1 className="text-xl font-semibold">
+{/* HEADER */}
+
+<div className="flex items-center justify-between">
+
+<h1 className="text-2xl font-semibold tracking-tight">
 Overview
 </h1>
 
-{/* META INFO */}
+<span className="text-sm text-gray-400">
+Dashboard Analytics
+</span>
 
-<div className="grid grid-cols-5 gap-4">
-
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
-Revenue Today
 </div>
-<div className="text-xl font-semibold">
+
+{/* META CARDS */}
+
+<div className="grid grid-cols-5 gap-5">
+
+<div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
+<div className="text-xs text-gray-500 mb-1">Revenue Today</div>
+<div className="text-2xl font-semibold text-blue-600">
 Rp {meta.today}
 </div>
 </div>
 
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
-Revenue Month
-</div>
-<div className="text-xl font-semibold">
+<div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
+<div className="text-xs text-gray-500 mb-1">Revenue Month</div>
+<div className="text-2xl font-semibold text-green-600">
 Rp {meta.month}
 </div>
 </div>
 
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
-Revenue Total
-</div>
-<div className="text-xl font-semibold">
+<div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
+<div className="text-xs text-gray-500 mb-1">Revenue Total</div>
+<div className="text-2xl font-semibold text-purple-600">
 Rp {meta.total}
 </div>
 </div>
 
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
-Transactions
-</div>
-<div className="text-xl font-semibold">
+<div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
+<div className="text-xs text-gray-500 mb-1">Transactions</div>
+<div className="text-2xl font-semibold">
 {meta.transactions}
 </div>
 </div>
 
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
-Active Accounts
-</div>
-<div className="text-xl font-semibold">
+<div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
+<div className="text-xs text-gray-500 mb-1">Active Accounts</div>
+<div className="text-2xl font-semibold text-emerald-600">
 {status.active}
 </div>
 </div>
 
 </div>
 
-{/* CHART */}
+{/* CHARTS */}
 
-<div className="grid grid-cols-2 gap-4">
+<div className="grid grid-cols-2 gap-6">
 
-<div className="bg-white border border-gray-200 rounded-lg p-4 h-[240px]">
+<div className="bg-white rounded-xl border shadow-sm p-6 h-[260px]">
 
-<h2 className="font-medium mb-3">
+<div className="flex justify-between mb-4">
+
+<h2 className="font-medium text-gray-700">
 Daily Sales by Product
 </h2>
+
+<span className="text-xs text-gray-400">
+Today
+</span>
+
+</div>
 
 {dailyChart && <Bar data={dailyChart} options={chartOptions}/>}
 
 </div>
 
-<div className="bg-white border border-gray-200 rounded-lg p-4 h-[240px]">
+<div className="bg-white rounded-xl border shadow-sm p-6 h-[260px]">
 
-<h2 className="font-medium mb-3">
-Monthly Sales
+<div className="flex justify-between mb-4">
+
+<h2 className="font-medium text-gray-700">
+Monthly Revenue
 </h2>
+
+<span className="text-xs text-gray-400">
+Year
+</span>
+
+</div>
 
 {monthlyChart && <Bar data={monthlyChart} options={chartOptions}/>}
 
@@ -294,31 +316,31 @@ Monthly Sales
 
 {/* ACCOUNT STATUS */}
 
-<div className="grid grid-cols-3 gap-4">
+<div className="grid grid-cols-3 gap-6">
 
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
+<div className="bg-white rounded-xl border shadow-sm p-5">
+<div className="text-sm text-gray-500 mb-1">
 Active Accounts
 </div>
-<div className="text-xl font-semibold">
+<div className="text-2xl font-semibold text-green-600">
 {status.active}
 </div>
 </div>
 
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
+<div className="bg-white rounded-xl border shadow-sm p-5">
+<div className="text-sm text-gray-500 mb-1">
 Expiring Accounts
 </div>
-<div className="text-xl font-semibold">
+<div className="text-2xl font-semibold text-yellow-500">
 {status.expiring}
 </div>
 </div>
 
-<div className="bg-white border rounded-lg p-4">
-<div className="text-sm text-gray-500">
+<div className="bg-white rounded-xl border shadow-sm p-5">
+<div className="text-sm text-gray-500 mb-1">
 Expired Accounts
 </div>
-<div className="text-xl font-semibold">
+<div className="text-2xl font-semibold text-red-500">
 {status.expired}
 </div>
 </div>
