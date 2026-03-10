@@ -14,7 +14,6 @@ const [email,setEmail] = useState("");
 const [password,setPassword] = useState("");
 const [profile,setProfile] = useState("");
 const [pin,setPin] = useState("");
-const [tos,setTos] = useState("");
 const [productId,setProductId] = useState("");
 
 const [editStockData,setEditStockData] = useState<any>(null);
@@ -29,9 +28,7 @@ available:0,
 sold:0
 });
 
-/* ===============================
-INIT
-================================ */
+/* INIT */
 
 useEffect(()=>{
 
@@ -59,10 +56,7 @@ supabase.removeChannel(channel);
 
 },[page,search,filterProduct]);
 
-
-/* ===============================
-FETCH PRODUCTS
-================================ */
+/* FETCH PRODUCTS */
 
 const fetchProducts = async()=>{
 
@@ -74,19 +68,14 @@ setProducts(data || []);
 
 };
 
-
-/* ===============================
-FETCH STOCK
-================================ */
+/* FETCH STOCK */
 
 const fetchStocks = async()=>{
 
 let query = supabase
 .from("product_accounts")
-.select(`
-*,
-products(name)
-`)
+.select(`*,
+products(name)`)
 .order("created_at",{ascending:false})
 .range((page-1)*pageSize,(page*pageSize)-1);
 
@@ -111,10 +100,7 @@ setStats({available,sold});
 
 };
 
-
-/* ===============================
-ADD STOCK
-================================ */
+/* ADD STOCK */
 
 const addStock = async()=>{
 
@@ -131,7 +117,6 @@ email,
 password,
 profile,
 pin,
-tos,
 status:"available"
 });
 
@@ -139,16 +124,12 @@ setEmail("");
 setPassword("");
 setProfile("");
 setPin("");
-setTos("");
 
 fetchStocks();
 
 };
 
-
-/* ===============================
-EDIT STOCK
-================================ */
+/* EDIT STOCK */
 
 const updateStock = async()=>{
 
@@ -158,8 +139,7 @@ await supabase
 email:editStockData.email,
 password:editStockData.password,
 profile:editStockData.profile,
-pin:editStockData.pin,
-tos:editStockData.tos
+pin:editStockData.pin
 })
 .eq("id",editStockData.id);
 
@@ -169,10 +149,7 @@ fetchStocks();
 
 };
 
-
-/* ===============================
-CSV UPLOAD
-================================ */
+/* CSV UPLOAD */
 
 const uploadCSV = async()=>{
 
@@ -202,11 +179,10 @@ await supabase
 .from("product_accounts")
 .insert({
 product_id:productId,
-email:cols[0],
-password:cols[1],
-profile:cols[2],
-pin:cols[3],
-tos:cols[4],
+email:cols,
+password:cols,
+profile:cols,
+pin:cols,
 status:"available"
 })
 
@@ -216,12 +192,9 @@ alert("Upload selesai")
 
 fetchStocks()
 
-};
+}
 
-
-/* ===============================
-DELETE
-================================ */
+/* DELETE */
 
 const deleteStock = async(id:any)=>{
 
@@ -267,10 +240,7 @@ fetchStocks();
 
 };
 
-
-/* ===============================
-PAGINATION
-================================ */
+/* PAGINATION */
 
 const nextPage = ()=>{
 if(stocks.length === pageSize){
@@ -284,10 +254,7 @@ setPage(page-1);
 }
 };
 
-
-/* ===============================
-UI
-================================ */
+/* UI */
 
 return(
 
@@ -296,7 +263,6 @@ return(
 <h1 className="text-2xl font-bold">
 Stock Management
 </h1>
-
 
 {/* STATS */}
 
@@ -312,8 +278,7 @@ Sold : {stats.sold}
 
 </div>
 
-
-{/* ADD STOCK CARD */}
+{/* ADD STOCK */}
 
 <div className="bg-white p-6 rounded-xl shadow space-y-4">
 
@@ -327,7 +292,9 @@ Add Stock
 className="border p-2 rounded"
 value={productId}
 onChange={(e)=>setProductId(e.target.value)}
+
 >
+
 <option value="">Select Product</option>
 
 {products.map(p=>(
@@ -340,14 +307,12 @@ onChange={(e)=>setProductId(e.target.value)}
 
 </select>
 
-
 <input
 className="border p-2 rounded"
 placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
 />
-
 
 <input
 className="border p-2 rounded"
@@ -356,14 +321,12 @@ value={password}
 onChange={(e)=>setPassword(e.target.value)}
 />
 
-
 <input
 className="border p-2 rounded"
 placeholder="Profile"
 value={profile}
 onChange={(e)=>setProfile(e.target.value)}
 />
-
 
 <input
 className="border p-2 rounded"
@@ -372,25 +335,17 @@ value={pin}
 onChange={(e)=>setPin(e.target.value)}
 />
 
-
-<input
-className="border p-2 rounded"
-placeholder="Terms of Service"
-value={tos}
-onChange={(e)=>setTos(e.target.value)}
-/>
-
 </div>
 
 <button
 onClick={addStock}
 className="bg-black text-white px-5 py-2 rounded"
+
 >
-Add Stock
-</button>
+
+Add Stock </button>
 
 </div>
-
 
 {/* CSV */}
 
@@ -411,18 +366,18 @@ onChange={(e)=>setCsvFile(e.target.files?.[0])}
 <button
 onClick={uploadCSV}
 className="bg-blue-600 text-white px-4 py-2 rounded"
+
 >
-Upload
-</button>
+
+Upload </button>
 
 </div>
 
 <p className="text-xs text-gray-500 mt-2">
-format: email,password,profile,pin,tos
+format: email,password,profile,pin
 </p>
 
 </div>
-
 
 {/* FILTER */}
 
@@ -435,11 +390,11 @@ value={search}
 onChange={(e)=>setSearch(e.target.value)}
 />
 
-
 <select
 className="border p-2 rounded"
 value={filterProduct}
 onChange={(e)=>setFilterProduct(e.target.value)}
+
 >
 
 <option value="">All Products</option>
@@ -454,23 +409,23 @@ onChange={(e)=>setFilterProduct(e.target.value)}
 
 </select>
 
-
 <button
 onClick={deleteByProduct}
 className="bg-red-500 text-white px-3 py-2 rounded"
+
 >
-Delete by Product
-</button>
+
+Delete by Product </button>
 
 <button
 onClick={deleteAllStock}
 className="bg-red-700 text-white px-3 py-2 rounded"
+
 >
-Delete ALL
-</button>
+
+Delete ALL </button>
 
 </div>
-
 
 {/* TABLE */}
 
@@ -484,7 +439,6 @@ Delete ALL
 <th className="p-3 text-left">Email</th>
 <th className="p-3 text-left">Profile</th>
 <th className="p-3 text-left">PIN</th>
-<th className="p-3 text-left">TOS</th>
 <th className="p-3 text-left">Status</th>
 <th className="p-3 text-left">Action</th>
 
@@ -502,7 +456,6 @@ Delete ALL
 <td className="p-3">{s.email}</td>
 <td className="p-3">{s.profile}</td>
 <td className="p-3">{s.pin}</td>
-<td className="p-3">{s.tos}</td>
 <td className="p-3">{s.status}</td>
 
 <td className="p-3 flex gap-2">
@@ -510,16 +463,18 @@ Delete ALL
 <button
 onClick={()=>setEditStockData(s)}
 className="bg-blue-500 text-white px-3 py-1 rounded"
+
 >
-Edit
-</button>
+
+Edit </button>
 
 <button
 onClick={()=>deleteStock(s.id)}
 className="bg-red-500 text-white px-3 py-1 rounded"
+
 >
-Delete
-</button>
+
+Delete </button>
 
 </td>
 
@@ -531,7 +486,6 @@ Delete
 
 </table>
 
-
 {/* PAGINATION */}
 
 <div className="flex gap-3 items-center">
@@ -539,9 +493,10 @@ Delete
 <button
 onClick={prevPage}
 className="bg-gray-300 px-4 py-2 rounded"
+
 >
-Prev
-</button>
+
+Prev </button>
 
 <div>
 Page {page}
@@ -550,12 +505,12 @@ Page {page}
 <button
 onClick={nextPage}
 className="bg-black text-white px-4 py-2 rounded"
+
 >
-Next
-</button>
+
+Next </button>
 
 </div>
-
 
 {/* EDIT MODAL */}
 
@@ -593,27 +548,23 @@ value={editStockData.pin}
 onChange={(e)=>setEditStockData({...editStockData,pin:e.target.value})}
 />
 
-<input
-className="border p-2 w-full rounded"
-value={editStockData.tos}
-onChange={(e)=>setEditStockData({...editStockData,tos:e.target.value})}
-/>
-
 <div className="flex gap-2 justify-end">
 
 <button
 onClick={()=>setEditStockData(null)}
 className="px-4 py-2 bg-gray-300 rounded"
+
 >
-Cancel
-</button>
+
+Cancel </button>
 
 <button
 onClick={updateStock}
 className="px-4 py-2 bg-black text-white rounded"
+
 >
-Save
-</button>
+
+Save </button>
 
 </div>
 
