@@ -15,6 +15,7 @@ const [price,setPrice] = useState("");
 const [discount,setDiscount] = useState("");
 const [duration,setDuration] = useState("");
 const [description,setDescription] = useState("");
+const [tos,setTos] = useState("");
 
 const [page,setPage] = useState(1);
 const pageSize = 10;
@@ -45,7 +46,6 @@ const {data} = await supabase
 .range((page-1)*pageSize,(page*pageSize));
 
 setProducts(data?.slice(0,pageSize) || []);
-
 setHasMore((data?.length || 0) > pageSize);
 
 };
@@ -104,8 +104,8 @@ price_normal:Number(price),
 reseller_discount:Number(discount || 0),
 duration_days:Number(duration),
 description:description,
+tos_description:tos,
 template_message:"Email: {email}\nPassword: {password}",
-tos_description:"No garansi sharing account",
 is_active:true
 });
 
@@ -115,6 +115,7 @@ setPrice("");
 setDiscount("");
 setDuration("");
 setDescription("");
+setTos("");
 
 fetchProducts();
 
@@ -132,6 +133,7 @@ setPrice(p.price_normal || "");
 setDiscount(p.reseller_discount || "");
 setDuration(p.duration_days || "");
 setDescription(p.description || "");
+setTos(p.tos_description || "");
 
 setShowModal(true);
 
@@ -151,7 +153,8 @@ name:name,
 price_normal:Number(price),
 reseller_discount:Number(discount || 0),
 duration_days:Number(duration),
-description:description
+description:description,
+tos_description:tos
 })
 .eq("id",editingProduct.id);
 
@@ -229,7 +232,7 @@ return(
 <div className="max-w-6xl mx-auto text-sm">
 
 <h1 className="text-2xl font-bold mb-6">
-Products
+Product Management
 </h1>
 
 {/* ADD PRODUCT BUTTON */}
@@ -460,6 +463,13 @@ value={description}
 onChange={(e)=>setDescription(e.target.value)}
 />
 
+<textarea
+className="border p-2 rounded w-full mt-3"
+placeholder="Terms of Service"
+value={tos}
+onChange={(e)=>setTos(e.target.value)}
+/>
+
 <div className="flex justify-end gap-3 mt-5">
 
 <button
@@ -538,6 +548,13 @@ onChange={(e)=>setDescription(e.target.value)}
 placeholder="Description"
 />
 
+<textarea
+className="border p-2 rounded w-full"
+value={tos}
+onChange={(e)=>setTos(e.target.value)}
+placeholder="Terms of Service"
+/>
+
 </div>
 
 <div className="flex justify-end gap-3 mt-5">
@@ -567,5 +584,4 @@ Update Product
 </div>
 
 );
-
 }
