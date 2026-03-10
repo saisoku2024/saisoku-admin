@@ -463,60 +463,68 @@ Next </button>
 
 <div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
 
-<h2 className="font-semibold">
+<h2 className="font-semibold text-lg">
 Add Stock
 </h2>
 
+<div>
+<label className="text-sm font-medium">Product</label>
 <select
 className="border p-2 rounded w-full"
 value={productId}
 onChange={(e)=>setProductId(e.target.value)}
-
 >
-
 <option value="">Select Product</option>
 {products.map(p=>(
 <option key={p.id} value={p.id}>{p.name}</option>
 ))}
 </select>
+</div>
 
+<div>
+<label className="text-sm font-medium">Email</label>
 <input
 className="border p-2 rounded w-full"
-placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">Password</label>
 <input
 className="border p-2 rounded w-full"
-placeholder="Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">Profile</label>
 <input
 className="border p-2 rounded w-full"
-placeholder="Profile"
 value={profile}
 onChange={(e)=>setProfile(e.target.value)}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">PIN</label>
 <input
 className="border p-2 rounded w-full"
-placeholder="PIN"
 value={pin}
 onChange={(e)=>setPin(e.target.value)}
 />
+</div>
 
-<div className="flex justify-end gap-3">
+<div className="flex justify-end gap-3 pt-2">
 
 <button
 onClick={()=>setShowAddModal(false)}
 className="px-4 py-2 border rounded"
-
 >
-
-Cancel </button>
+Cancel
+</button>
 
 <button
 onClick={()=>{
@@ -524,10 +532,9 @@ addStock()
 setShowAddModal(false)
 }}
 className="px-4 py-2 bg-green-600 text-white rounded"
-
 >
-
-Add Stock </button>
+Add Stock
+</button>
 
 </div>
 
@@ -536,8 +543,3 @@ Add Stock </button>
 </div>
 
 )}
-
-</div>
-
-);
-}
