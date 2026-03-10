@@ -16,6 +16,7 @@ const [profile,setProfile] = useState("");
 const [pin,setPin] = useState("");
 const [productId,setProductId] = useState("");
 
+const [showAddModal,setShowAddModal] = useState(false);
 const [editStockData,setEditStockData] = useState<any>(null);
 
 const [csvFile,setCsvFile] = useState<any>(null);
@@ -50,9 +51,7 @@ fetchStocks();
 )
 .subscribe();
 
-return ()=>{
-supabase.removeChannel(channel);
-};
+return ()=> supabase.removeChannel(channel);
 
 },[page,search,filterProduct]);
 
@@ -75,8 +74,7 @@ const fetchStocks = async()=>{
 
 let query = supabase
 .from("product_accounts")
-.select(`*,
-products(name)`)
+.select(`*,products(name)`)
 .order("created_at",{ascending:false})
 .range((page-1)*pageSize,(page*pageSize)-1);
 
@@ -149,29 +147,29 @@ fetchStocks();
 
 };
 
-/* CSV UPLOAD */
+/* CSV */
 
 const uploadCSV = async()=>{
 
 if(!csvFile){
-alert("Pilih file CSV dulu")
-return
+alert("Pilih file CSV dulu");
+return;
 }
 
 if(!productId){
-alert("Pilih product dulu")
-return
+alert("Pilih product dulu");
+return;
 }
 
-const text = await csvFile.text()
-const rows = text.split("\n")
+const text = await csvFile.text();
+const rows = text.split("\n");
 
 for(let i=1;i<rows.length;i++){
 
-const clean = rows[i].replace("\r","").trim()
-if(!clean) continue
+const clean = rows[i].replace("\r","").trim();
+if(!clean) continue;
 
-const cols = clean.split(",")
+const cols = clean.split(",");
 
 await supabase
 .from("product_accounts")
@@ -182,14 +180,14 @@ password:cols,
 profile:cols,
 pin:cols,
 status:"available"
-})
+});
 
 }
 
-alert("Upload selesai")
-fetchStocks()
+alert("Upload selesai");
+fetchStocks();
 
-}
+};
 
 /* DELETE */
 
@@ -226,8 +224,6 @@ alert("Pilih produk dulu");
 return;
 }
 
-if(!confirm("Delete stock by product?")) return;
-
 await supabase
 .from("product_accounts")
 .delete()
@@ -240,15 +236,11 @@ fetchStocks();
 /* PAGINATION */
 
 const nextPage = ()=>{
-if(stocks.length === pageSize){
-setPage(page+1);
-}
+if(stocks.length === pageSize) setPage(page+1);
 };
 
 const prevPage = ()=>{
-if(page>1){
-setPage(page-1);
-}
+if(page>1) setPage(page-1);
 };
 
 /* UI */
@@ -277,77 +269,17 @@ Sold : {stats.sold}
 
 </div>
 
-{/* ADD STOCK */}
-
-<div className="bg-white p-5 rounded-xl shadow space-y-4">
-
-<h2 className="font-semibold">
-Add Manual Stock
-</h2>
-
-<div className="grid md:grid-cols-2 gap-4">
-
-<div>
-<label className="text-sm font-medium">Product</label>
-<select
-className="border p-2 rounded w-full"
-value={productId}
-onChange={(e)=>setProductId(e.target.value)}
->
-<option value="">Select Product</option>
-{products.map(p=>(
-<option key={p.id} value={p.id}>{p.name}</option>
-))}
-</select>
-</div>
-
-<div>
-<label className="text-sm font-medium">Email</label>
-<input
-className="border p-2 rounded w-full"
-value={email}
-onChange={(e)=>setEmail(e.target.value)}
-/>
-</div>
-
-<div>
-<label className="text-sm font-medium">Password</label>
-<input
-className="border p-2 rounded w-full"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-/>
-</div>
-
-<div>
-<label className="text-sm font-medium">Profile</label>
-<input
-className="border p-2 rounded w-full"
-value={profile}
-onChange={(e)=>setProfile(e.target.value)}
-/>
-</div>
-
-<div>
-<label className="text-sm font-medium">PIN</label>
-<input
-className="border p-2 rounded w-full"
-value={pin}
-onChange={(e)=>setPin(e.target.value)}
-/>
-</div>
-
-</div>
+{/* ADD STOCK BUTTON */}
 
 <button
-onClick={addStock}
-className="bg-black text-white px-5 py-2 rounded"
+onClick={()=>setShowAddModal(true)}
+className="bg-black text-white px-4 py-2 rounded"
 
 >
 
-Add Stock </button>
+* Add Stock
 
-</div>
+  </button>
 
 {/* CSV */}
 
@@ -400,9 +332,12 @@ onChange={(e)=>setFilterProduct(e.target.value)}
 >
 
 <option value="">All Products</option>
+
 {products.map(p=>(
+
 <option key={p.id} value={p.id}>{p.name}</option>
 ))}
+
 </select>
 
 <button
@@ -494,9 +429,7 @@ className="bg-gray-300 px-4 py-2 rounded"
 
 Prev </button>
 
-<div>
-Page {page}
-</div>
+<div>Page {page}</div>
 
 <button
 onClick={nextPage}
@@ -508,71 +441,81 @@ Next </button>
 
 </div>
 
-{/* EDIT MODAL */}
+</div>
 
-{editStockData && (
+{/* ADD STOCK MODAL */}
 
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+{showAddModal && (
 
-<div className="bg-white p-6 rounded-xl w-[420px] space-y-4">
+<div className="fixed inset-0 flex items-center justify-center bg-black/40">
+
+<div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
 
 <h2 className="font-semibold">
-Edit Stock
+Add Stock
 </h2>
 
-<div>
-<label className="text-sm font-medium">Email</label>
-<input
-className="border p-2 w-full rounded"
-value={editStockData.email}
-onChange={(e)=>setEditStockData({...editStockData,email:e.target.value})}
-/>
-</div>
+<select
+className="border p-2 rounded w-full"
+value={productId}
+onChange={(e)=>setProductId(e.target.value)}
 
-<div>
-<label className="text-sm font-medium">Password</label>
-<input
-className="border p-2 w-full rounded"
-value={editStockData.password}
-onChange={(e)=>setEditStockData({...editStockData,password:e.target.value})}
-/>
-</div>
+>
 
-<div>
-<label className="text-sm font-medium">Profile</label>
-<input
-className="border p-2 w-full rounded"
-value={editStockData.profile}
-onChange={(e)=>setEditStockData({...editStockData,profile:e.target.value})}
-/>
-</div>
+<option value="">Select Product</option>
+{products.map(p=>(
+<option key={p.id} value={p.id}>{p.name}</option>
+))}
+</select>
 
-<div>
-<label className="text-sm font-medium">PIN</label>
 <input
-className="border p-2 w-full rounded"
-value={editStockData.pin}
-onChange={(e)=>setEditStockData({...editStockData,pin:e.target.value})}
+className="border p-2 rounded w-full"
+placeholder="Email"
+value={email}
+onChange={(e)=>setEmail(e.target.value)}
 />
-</div>
 
-<div className="flex gap-2 justify-end">
+<input
+className="border p-2 rounded w-full"
+placeholder="Password"
+value={password}
+onChange={(e)=>setPassword(e.target.value)}
+/>
+
+<input
+className="border p-2 rounded w-full"
+placeholder="Profile"
+value={profile}
+onChange={(e)=>setProfile(e.target.value)}
+/>
+
+<input
+className="border p-2 rounded w-full"
+placeholder="PIN"
+value={pin}
+onChange={(e)=>setPin(e.target.value)}
+/>
+
+<div className="flex justify-end gap-3">
 
 <button
-onClick={()=>setEditStockData(null)}
-className="px-4 py-2 bg-gray-300 rounded"
+onClick={()=>setShowAddModal(false)}
+className="px-4 py-2 border rounded"
 
 >
 
 Cancel </button>
 
 <button
-onClick={updateStock}
-className="px-4 py-2 bg-black text-white rounded"
+onClick={()=>{
+addStock()
+setShowAddModal(false)
+}}
+className="px-4 py-2 bg-green-600 text-white rounded"
 
 >
 
-Save </button>
+Add Stock </button>
 
 </div>
 
@@ -582,7 +525,6 @@ Save </button>
 
 )}
 
-</div>
 </div>
 
 );
