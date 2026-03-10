@@ -16,7 +16,7 @@ const [duration,setDuration] = useState("");
 const [description,setDescription] = useState("");
 
 const [page,setPage] = useState(1);
-const pageSize = 20;
+const pageSize = 10;
 
 useEffect(()=>{
 fetchProducts();
