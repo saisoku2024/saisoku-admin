@@ -247,15 +247,15 @@ return(
 
 <div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 overflow-hidden">
 
-{/* PREMIUM APP BACKGROUND */}
+{/* BACKGROUND PREMIUM APPS */}
 
-<div className="absolute inset-0 pointer-events-none opacity-10 blur-xl flex flex-wrap gap-16 justify-center items-center">
+<div className="absolute inset-0 pointer-events-none opacity-20 blur-2xl flex flex-wrap gap-20 justify-center items-center">
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" className="h-16"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" className="h-14"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg" className="h-14"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" className="h-14"/>
-<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" className="h-14"/>
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" className="h-20"/>
+<img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" className="h-16"/>
+<img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg" className="h-16"/>
+<img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" className="h-16"/>
+<img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" className="h-16"/>
 
 </div>
 
@@ -281,8 +281,6 @@ Sold : {stats.sold}
 
 {/* ADD STOCK BUTTON */}
 
-<div className="flex justify-between items-center">
-
 <button
 onClick={()=>setShowAddModal(true)}
 className="bg-black text-white px-4 py-2 rounded"
@@ -292,8 +290,6 @@ className="bg-black text-white px-4 py-2 rounded"
 * Add Stock
 
   </button>
-
-</div>
 
 {/* CSV */}
 
@@ -461,7 +457,7 @@ Next </button>
 
 {showAddModal && (
 
-<div className="fixed inset-0 flex items-center justify-center bg-black/40">
+<div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
 
 <div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
 
