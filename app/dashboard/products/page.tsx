@@ -7,6 +7,7 @@ export default function ProductsPage() {
 
 const [products,setProducts] = useState<any[]>([]);
 const [stocks,setStocks] = useState<any>({});
+const [selected,setSelected] = useState<any[]>([]);
 
 const [code,setCode] = useState("");
 const [name,setName] = useState("");
@@ -18,10 +19,13 @@ const [description,setDescription] = useState("");
 const [page,setPage] = useState(1);
 const pageSize = 10;
 
+const [sortField,setSortField] = useState("created_at");
+const [sortAsc,setSortAsc] = useState(false);
+
 useEffect(()=>{
 fetchProducts();
 fetchStockCount();
-},[page]);
+},[page,sortField,sortAsc]);
 
 /* FETCH PRODUCTS */
 
@@ -30,14 +34,14 @@ const fetchProducts = async () => {
 const {data} = await supabase
 .from("products")
 .select("*")
-.order("created_at",{ascending:false})
+.order(sortField,{ascending:sortAsc})
 .range((page-1)*pageSize,(page*pageSize)-1);
 
 setProducts(data || []);
 
 };
 
-/* FETCH STOCK COUNTER + AUTO STATUS */
+/* FETCH STOCK COUNTER */
 
 const fetchStockCount = async () => {
 
@@ -50,33 +54,25 @@ const map:any = {};
 data?.forEach((row:any)=>{
 
 if(row.status === "available"){
-
 map[row.product_id] =
 (map[row.product_id] || 0) + 1;
-
 }
 
 });
 
 setStocks(map);
 
-/* AUTO UPDATE STATUS */
+};
 
-const {data:allProducts} = await supabase
-.from("products")
-.select("id");
+/* SORT */
 
-for(const p of allProducts || []){
+const sortBy = (field:any)=>{
 
-const stock = map[p.id] || 0;
-
-await supabase
-.from("products")
-.update({
-is_active: stock > 0
-})
-.eq("id",p.id);
-
+if(sortField===field){
+setSortAsc(!sortAsc);
+}else{
+setSortField(field);
+setSortAsc(true);
 }
 
 };
@@ -143,7 +139,7 @@ fetchProducts();
 
 };
 
-/* DELETE PRODUCT */
+/* DELETE SINGLE */
 
 const deleteProduct = async (id:any)=>{
 
@@ -154,6 +150,29 @@ await supabase
 .from("products")
 .delete()
 .eq("id",id);
+
+fetchProducts();
+
+};
+
+/* BULK DELETE */
+
+const deleteSelected = async ()=>{
+
+if(selected.length===0){
+alert("No product selected");
+return;
+}
+
+const confirmDelete = confirm("Delete selected products?");
+if(!confirmDelete) return;
+
+await supabase
+.from("products")
+.delete()
+.in("id",selected);
+
+setSelected([]);
 
 fetchProducts();
 
@@ -176,20 +195,10 @@ fetchProducts();
 
 /* PAGINATION */
 
-const nextPage = ()=>{
-
-setPage(page+1);
-
-};
+const nextPage = ()=>{ setPage(page+1); };
 
 const prevPage = ()=>{
-
-if(page>1){
-
-setPage(page-1);
-
-}
-
+if(page>1) setPage(page-1);
 };
 
 return(
@@ -210,43 +219,37 @@ Add Product
 
 <div className="grid grid-cols-3 gap-4">
 
-<input
-className="border p-2 rounded"
-placeholder="Product Code (ex: NET01)"
+<input className="border p-2 rounded"
+placeholder="Product Code"
 value={code}
 onChange={(e)=>setCode(e.target.value)}
 />
 
-<input
-className="border p-2 rounded"
+<input className="border p-2 rounded"
 placeholder="Product name"
 value={name}
 onChange={(e)=>setName(e.target.value)}
 />
 
-<input
-className="border p-2 rounded"
+<input className="border p-2 rounded"
 placeholder="Price normal"
 value={price}
 onChange={(e)=>setPrice(e.target.value)}
 />
 
-<input
-className="border p-2 rounded"
+<input className="border p-2 rounded"
 placeholder="Reseller discount"
 value={discount}
 onChange={(e)=>setDiscount(e.target.value)}
 />
 
-<input
-className="border p-2 rounded"
+<input className="border p-2 rounded"
 placeholder="Duration days"
 value={duration}
 onChange={(e)=>setDuration(e.target.value)}
 />
 
-<input
-className="border p-2 rounded"
+<input className="border p-2 rounded"
 placeholder="Description"
 value={description}
 onChange={(e)=>setDescription(e.target.value)}
@@ -263,6 +266,15 @@ Add Product
 
 </div>
 
+{/* BULK DELETE */}
+
+<button
+onClick={deleteSelected}
+className="bg-red-600 text-white px-4 py-2 rounded mb-4"
+>
+Delete Selected
+</button>
+
 {/* TABLE */}
 
 <table className="w-full bg-white rounded-xl shadow">
@@ -271,14 +283,27 @@ Add Product
 
 <tr className="border-b">
 
-<th className="p-3 text-left">Code</th>
-<th className="p-3 text-left">Name</th>
-<th className="p-3 text-left">Price</th>
-<th className="p-3 text-left">Reseller Discount</th>
-<th className="p-3 text-left">Duration</th>
-<th className="p-3 text-left">Stock</th>
-<th className="p-3 text-left">Status</th>
-<th className="p-3 text-left">Action</th>
+<th className="p-3">
+<input
+type="checkbox"
+onChange={(e)=>{
+if(e.target.checked){
+setSelected(products.map(p=>p.id))
+}else{
+setSelected([])
+}
+}}
+/>
+</th>
+
+<th className="p-3 cursor-pointer" onClick={()=>sortBy("product_code")}>Code</th>
+<th className="p-3 cursor-pointer" onClick={()=>sortBy("name")}>Name</th>
+<th className="p-3 cursor-pointer" onClick={()=>sortBy("price_normal")}>Price</th>
+<th className="p-3 cursor-pointer" onClick={()=>sortBy("reseller_discount")}>Reseller Discount</th>
+<th className="p-3 cursor-pointer" onClick={()=>sortBy("duration_days")}>Duration</th>
+<th className="p-3">Stock</th>
+<th className="p-3">Status</th>
+<th className="p-3">Action</th>
 
 </tr>
 
@@ -295,28 +320,29 @@ return(
 <tr key={p.id} className="border-b hover:bg-gray-50">
 
 <td className="p-3">
-{p.product_code}
+
+<input
+type="checkbox"
+checked={selected.includes(p.id)}
+onChange={()=>{
+
+if(selected.includes(p.id)){
+setSelected(selected.filter(id=>id!==p.id))
+}else{
+setSelected([...selected,p.id])
+}
+
+}}
+/>
+
 </td>
 
-<td className="p-3">
-{p.name}
-</td>
-
-<td className="p-3">
-Rp {p.price_normal}
-</td>
-
-<td className="p-3">
-Rp {p.reseller_discount}
-</td>
-
-<td className="p-3">
-{p.duration_days} days
-</td>
-
-<td className="p-3">
-{stock}
-</td>
+<td className="p-3">{p.product_code}</td>
+<td className="p-3">{p.name}</td>
+<td className="p-3">Rp {p.price_normal}</td>
+<td className="p-3">Rp {p.reseller_discount}</td>
+<td className="p-3">{p.duration_days} days</td>
+<td className="p-3">{stock}</td>
 
 <td className="p-3">
 
