@@ -431,9 +431,9 @@ Next
 
 {showModal && (
 
-<div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+<div className="fixed inset-0 flex items-center justify-center">
 
-<div className="bg-white p-6 rounded-xl w-[420px] shadow-xl">
+<div className="bg-white p-6 rounded-xl w-[420px] shadow-2xl">
 
 <h2 className="text-xl font-bold mb-4">
 Edit Product
