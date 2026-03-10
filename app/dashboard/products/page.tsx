@@ -19,6 +19,8 @@ const [description,setDescription] = useState("");
 const [page,setPage] = useState(1);
 const pageSize = 10;
 
+const [hasMore,setHasMore] = useState(false);
+
 const [sortField,setSortField] = useState("created_at");
 const [sortAsc,setSortAsc] = useState(false);
 
@@ -38,9 +40,11 @@ const {data} = await supabase
 .from("products")
 .select("*")
 .order(sortField,{ascending:sortAsc})
-.range((page-1)*pageSize,(page*pageSize)-1);
+.range((page-1)*pageSize,(page*pageSize));
 
-setProducts(data || []);
+setProducts(data?.slice(0,pageSize) || []);
+
+setHasMore((data?.length || 0) > pageSize);
 
 };
 
@@ -220,9 +224,9 @@ if(page>1) setPage(page-1);
 
 return(
 
-<div>
+<div className="max-w-6xl mx-auto text-sm">
 
-<h1 className="text-3xl font-bold mb-6">
+<h1 className="text-2xl font-bold mb-6">
 Products
 </h1>
 
@@ -230,44 +234,49 @@ Products
 
 <div className="bg-white p-6 rounded-xl shadow mb-8">
 
-<h2 className="text-xl mb-4">
+<h2 className="text-lg mb-4">
 Add Product
 </h2>
 
-<div className="grid grid-cols-3 gap-4">
+<div className="grid grid-cols-3 gap-4 max-w-6xl">
 
-<input className="border p-2 rounded"
+<input
+className="border p-2 rounded"
 placeholder="Product Code"
 value={code}
 onChange={(e)=>setCode(e.target.value)}
 />
 
-<input className="border p-2 rounded"
+<input
+className="border p-2 rounded"
 placeholder="Product name"
 value={name}
 onChange={(e)=>setName(e.target.value)}
 />
 
-<input className="border p-2 rounded"
+<input
+className="border p-2 rounded"
 placeholder="Price normal"
 value={price}
 onChange={(e)=>setPrice(e.target.value)}
 />
 
-<input className="border p-2 rounded"
+<input
+className="border p-2 rounded"
 placeholder="Reseller discount"
 value={discount}
 onChange={(e)=>setDiscount(e.target.value)}
 />
 
-<input className="border p-2 rounded"
+<input
+className="border p-2 rounded"
 placeholder="Duration days"
 value={duration}
 onChange={(e)=>setDuration(e.target.value)}
 />
 
 <textarea
-className="border p-2 rounded"
+className="border p-2 rounded col-span-3"
 placeholder="Description"
 value={description}
 onChange={(e)=>setDescription(e.target.value)}
@@ -295,7 +304,7 @@ Delete Selected
 
 {/* TABLE */}
 
-<table className="w-full bg-white rounded-xl shadow">
+<table className="w-full bg-white rounded-xl shadow text-sm">
 
 <thead>
 
@@ -409,7 +418,12 @@ Delete
 
 <button
 onClick={prevPage}
-className="bg-gray-300 px-4 py-2 rounded"
+disabled={page===1}
+className={`px-4 py-2 rounded ${
+page===1
+? "bg-gray-300 text-gray-500"
+: "bg-gray-300"
+}`}
 >
 Prev
 </button>
@@ -420,7 +434,12 @@ Page {page}
 
 <button
 onClick={nextPage}
-className="bg-black text-white px-4 py-2 rounded"
+disabled={!hasMore}
+className={`px-4 py-2 rounded ${
+hasMore
+? "bg-black text-white"
+: "bg-gray-300 text-gray-500 cursor-not-allowed"
+}`}
 >
 Next
 </button>
