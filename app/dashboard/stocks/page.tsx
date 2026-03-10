@@ -62,7 +62,8 @@ const fetchProducts = async()=>{
 
 const {data} = await supabase
 .from("products")
-.select("*");
+.select("*")
+.order("name",{ascending:true});
 
 setProducts(data || []);
 
@@ -129,7 +130,7 @@ fetchStocks();
 
 };
 
-/* EDIT STOCK */
+/* UPDATE STOCK */
 
 const updateStock = async()=>{
 
@@ -144,7 +145,6 @@ pin:editStockData.pin
 .eq("id",editStockData.id);
 
 setEditStockData(null);
-
 fetchStocks();
 
 };
@@ -164,13 +164,11 @@ return
 }
 
 const text = await csvFile.text()
-
 const rows = text.split("\n")
 
 for(let i=1;i<rows.length;i++){
 
 const clean = rows[i].replace("\r","").trim()
-
 if(!clean) continue
 
 const cols = clean.split(",")
@@ -189,7 +187,6 @@ status:"available"
 }
 
 alert("Upload selesai")
-
 fetchStocks()
 
 }
@@ -216,7 +213,7 @@ if(!confirm("Delete ALL stock?")) return;
 await supabase
 .from("product_accounts")
 .delete()
-.neq("id",0);
+.not("id","is",null);
 
 fetchStocks();
 
@@ -258,7 +255,9 @@ setPage(page-1);
 
 return(
 
-<div className="space-y-6">
+<div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8">
+
+<div className="max-w-6xl mx-auto space-y-5">
 
 <h1 className="text-2xl font-bold">
 Stock Management
@@ -280,60 +279,63 @@ Sold : {stats.sold}
 
 {/* ADD STOCK */}
 
-<div className="bg-white p-6 rounded-xl shadow space-y-4">
+<div className="bg-white p-5 rounded-xl shadow space-y-4">
 
 <h2 className="font-semibold">
-Add Stock
+Add Manual Stock
 </h2>
 
-<div className="grid md:grid-cols-3 gap-3">
+<div className="grid md:grid-cols-2 gap-4">
 
+<div>
+<label className="text-sm font-medium">Product</label>
 <select
-className="border p-2 rounded"
+className="border p-2 rounded w-full"
 value={productId}
 onChange={(e)=>setProductId(e.target.value)}
-
 >
-
 <option value="">Select Product</option>
-
 {products.map(p=>(
-
-<option key={p.id} value={p.id}>
-{p.name}
-</option>
-
+<option key={p.id} value={p.id}>{p.name}</option>
 ))}
-
 </select>
+</div>
 
+<div>
+<label className="text-sm font-medium">Email</label>
 <input
-className="border p-2 rounded"
-placeholder="Email"
+className="border p-2 rounded w-full"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">Password</label>
 <input
-className="border p-2 rounded"
-placeholder="Password"
+className="border p-2 rounded w-full"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">Profile</label>
 <input
-className="border p-2 rounded"
-placeholder="Profile"
+className="border p-2 rounded w-full"
 value={profile}
 onChange={(e)=>setProfile(e.target.value)}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">PIN</label>
 <input
-className="border p-2 rounded"
-placeholder="PIN"
+className="border p-2 rounded w-full"
 value={pin}
 onChange={(e)=>setPin(e.target.value)}
 />
+</div>
 
 </div>
 
@@ -349,13 +351,13 @@ Add Stock </button>
 
 {/* CSV */}
 
-<div className="bg-white p-6 rounded-xl shadow">
+<div className="bg-white p-5 rounded-xl shadow">
 
-<h2 className="font-semibold mb-2">
+<h2 className="font-semibold mb-3">
 Bulk Upload CSV
 </h2>
 
-<div className="flex gap-2">
+<div className="flex gap-3">
 
 <input
 type="file"
@@ -398,15 +400,9 @@ onChange={(e)=>setFilterProduct(e.target.value)}
 >
 
 <option value="">All Products</option>
-
 {products.map(p=>(
-
-<option key={p.id} value={p.id}>
-{p.name}
-</option>
-
+<option key={p.id} value={p.id}>{p.name}</option>
 ))}
-
 </select>
 
 <button
@@ -518,35 +514,47 @@ Next </button>
 
 <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
 
-<div className="bg-white p-6 rounded-xl w-[400px] space-y-3">
+<div className="bg-white p-6 rounded-xl w-[420px] space-y-4">
 
 <h2 className="font-semibold">
 Edit Stock
 </h2>
 
+<div>
+<label className="text-sm font-medium">Email</label>
 <input
 className="border p-2 w-full rounded"
 value={editStockData.email}
 onChange={(e)=>setEditStockData({...editStockData,email:e.target.value})}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">Password</label>
 <input
 className="border p-2 w-full rounded"
 value={editStockData.password}
 onChange={(e)=>setEditStockData({...editStockData,password:e.target.value})}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">Profile</label>
 <input
 className="border p-2 w-full rounded"
 value={editStockData.profile}
 onChange={(e)=>setEditStockData({...editStockData,profile:e.target.value})}
 />
+</div>
 
+<div>
+<label className="text-sm font-medium">PIN</label>
 <input
 className="border p-2 w-full rounded"
 value={editStockData.pin}
 onChange={(e)=>setEditStockData({...editStockData,pin:e.target.value})}
 />
+</div>
 
 <div className="flex gap-2 justify-end">
 
@@ -574,6 +582,7 @@ Save </button>
 
 )}
 
+</div>
 </div>
 
 );
