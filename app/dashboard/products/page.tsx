@@ -1,0 +1,392 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+
+export default function ProductsPage() {
+
+const [products,setProducts] = useState<any[]>([]);
+const [stocks,setStocks] = useState<any>({});
+
+const [code,setCode] = useState("");
+const [name,setName] = useState("");
+const [price,setPrice] = useState("");
+const [discount,setDiscount] = useState("");
+const [duration,setDuration] = useState("");
+const [description,setDescription] = useState("");
+
+const [page,setPage] = useState(1);
+const pageSize = 20;
+
+useEffect(()=>{
+fetchProducts();
+fetchStockCount();
+},[page]);
+
+/* FETCH PRODUCTS */
+
+const fetchProducts = async () => {
+
+const {data} = await supabase
+.from("products")
+.select("*")
+.order("created_at",{ascending:false})
+.range((page-1)*pageSize,(page*pageSize)-1);
+
+setProducts(data || []);
+
+};
+
+/* FETCH STOCK COUNTER + AUTO STATUS */
+
+const fetchStockCount = async () => {
+
+const {data} = await supabase
+.from("product_accounts")
+.select("product_id,status");
+
+const map:any = {};
+
+data?.forEach((row:any)=>{
+
+if(row.status === "available"){
+
+map[row.product_id] =
+(map[row.product_id] || 0) + 1;
+
+}
+
+});
+
+setStocks(map);
+
+/* AUTO UPDATE STATUS */
+
+const {data:allProducts} = await supabase
+.from("products")
+.select("id");
+
+for(const p of allProducts || []){
+
+const stock = map[p.id] || 0;
+
+await supabase
+.from("products")
+.update({
+is_active: stock > 0
+})
+.eq("id",p.id);
+
+}
+
+};
+
+/* ADD PRODUCT */
+
+const addProduct = async () => {
+
+if(!code || !name || !price || !duration){
+alert("Field tidak boleh kosong");
+return;
+}
+
+const {error} = await supabase
+.from("products")
+.insert({
+product_code:code,
+name:name,
+price_normal:Number(price),
+reseller_discount:Number(discount || 0),
+duration_days:Number(duration),
+description:description,
+template_message:"Email: {email}\nPassword: {password}",
+tos_description:"No garansi sharing account",
+is_active:true
+});
+
+if(error){
+alert(error.message);
+return;
+}
+
+setCode("");
+setName("");
+setPrice("");
+setDiscount("");
+setDuration("");
+setDescription("");
+
+fetchProducts();
+
+};
+
+/* UPDATE PRODUCT */
+
+const updateProduct = async (id:any)=>{
+
+const newPrice = prompt("New price?");
+const newDiscount = prompt("New reseller discount?");
+const newDuration = prompt("New duration days?");
+
+if(!newPrice || !newDuration) return;
+
+await supabase
+.from("products")
+.update({
+price_normal:Number(newPrice),
+reseller_discount:Number(newDiscount || 0),
+duration_days:Number(newDuration)
+})
+.eq("id",id);
+
+fetchProducts();
+
+};
+
+/* DELETE PRODUCT */
+
+const deleteProduct = async (id:any)=>{
+
+const confirmDelete = confirm("Delete product?");
+if(!confirmDelete) return;
+
+await supabase
+.from("products")
+.delete()
+.eq("id",id);
+
+fetchProducts();
+
+};
+
+/* TOGGLE ACTIVE */
+
+const toggleProduct = async (id:any,current:any)=>{
+
+await supabase
+.from("products")
+.update({
+is_active:!current
+})
+.eq("id",id);
+
+fetchProducts();
+
+};
+
+/* PAGINATION */
+
+const nextPage = ()=>{
+
+setPage(page+1);
+
+};
+
+const prevPage = ()=>{
+
+if(page>1){
+
+setPage(page-1);
+
+}
+
+};
+
+return(
+
+<div>
+
+<h1 className="text-3xl font-bold mb-6">
+Products
+</h1>
+
+{/* ADD PRODUCT */}
+
+<div className="bg-white p-6 rounded-xl shadow mb-8">
+
+<h2 className="text-xl mb-4">
+Add Product
+</h2>
+
+<div className="grid grid-cols-3 gap-4">
+
+<input
+className="border p-2 rounded"
+placeholder="Product Code (ex: NET01)"
+value={code}
+onChange={(e)=>setCode(e.target.value)}
+/>
+
+<input
+className="border p-2 rounded"
+placeholder="Product name"
+value={name}
+onChange={(e)=>setName(e.target.value)}
+/>
+
+<input
+className="border p-2 rounded"
+placeholder="Price normal"
+value={price}
+onChange={(e)=>setPrice(e.target.value)}
+/>
+
+<input
+className="border p-2 rounded"
+placeholder="Reseller discount"
+value={discount}
+onChange={(e)=>setDiscount(e.target.value)}
+/>
+
+<input
+className="border p-2 rounded"
+placeholder="Duration days"
+value={duration}
+onChange={(e)=>setDuration(e.target.value)}
+/>
+
+<input
+className="border p-2 rounded"
+placeholder="Description"
+value={description}
+onChange={(e)=>setDescription(e.target.value)}
+/>
+
+</div>
+
+<button
+onClick={addProduct}
+className="mt-4 bg-black text-white px-4 py-2 rounded"
+>
+Add Product
+</button>
+
+</div>
+
+{/* TABLE */}
+
+<table className="w-full bg-white rounded-xl shadow">
+
+<thead>
+
+<tr className="border-b">
+
+<th className="p-3 text-left">Code</th>
+<th className="p-3 text-left">Name</th>
+<th className="p-3 text-left">Price</th>
+<th className="p-3 text-left">Reseller Discount</th>
+<th className="p-3 text-left">Duration</th>
+<th className="p-3 text-left">Stock</th>
+<th className="p-3 text-left">Status</th>
+<th className="p-3 text-left">Action</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{products.map((p)=>{
+
+const stock = stocks[p.id] || 0;
+
+return(
+
+<tr key={p.id} className="border-b hover:bg-gray-50">
+
+<td className="p-3">
+{p.product_code}
+</td>
+
+<td className="p-3">
+{p.name}
+</td>
+
+<td className="p-3">
+Rp {p.price_normal}
+</td>
+
+<td className="p-3">
+Rp {p.reseller_discount}
+</td>
+
+<td className="p-3">
+{p.duration_days} days
+</td>
+
+<td className="p-3">
+{stock}
+</td>
+
+<td className="p-3">
+
+<button
+onClick={()=>toggleProduct(p.id,p.is_active)}
+className={`px-3 py-1 rounded text-white ${
+p.is_active ? "bg-green-500" : "bg-gray-500"
+}`}
+>
+
+{p.is_active ? "Active" : "Inactive"}
+
+</button>
+
+</td>
+
+<td className="p-3 flex gap-2">
+
+<button
+onClick={()=>updateProduct(p.id)}
+className="bg-blue-500 text-white px-3 py-1 rounded"
+>
+Edit
+</button>
+
+<button
+onClick={()=>deleteProduct(p.id)}
+className="bg-red-500 text-white px-3 py-1 rounded"
+>
+Delete
+</button>
+
+</td>
+
+</tr>
+
+)
+
+})}
+
+</tbody>
+
+</table>
+
+{/* PAGINATION */}
+
+<div className="flex gap-4 mt-6">
+
+<button
+onClick={prevPage}
+className="bg-gray-300 px-4 py-2 rounded"
+>
+Prev
+</button>
+
+<div className="px-4 py-2">
+Page {page}
+</div>
+
+<button
+onClick={nextPage}
+className="bg-black text-white px-4 py-2 rounded"
+>
+Next
+</button>
+
+</div>
+
+</div>
+
+);
+
+}
