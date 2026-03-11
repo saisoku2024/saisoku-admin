@@ -237,35 +237,29 @@ Product Management
 
 {/* ADD PRODUCT BUTTON */}
 
-<div className="flex justify-between mb-4">
+<div className="flex gap-3 mb-4">
 
 <button
 onClick={()=>setShowAddModal(true)}
-className="bg-black text-white px-4 py-2 rounded"
-
+className="h-10 px-5 bg-black text-white rounded-lg hover:bg-gray-800 transition"
 >
-
-* Add Product
-
-  </button>
-
-</div>
-
-{/* BULK DELETE */}
++ Add Product
+</button>
 
 <button
 onClick={deleteSelected}
-className="bg-red-600 text-white px-4 py-2 rounded mb-4"
-
+className="h-10 px-5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
 >
+Delete Selected
+</button>
 
-Delete Selected </button>
+</div>
 
 {/* TABLE */}
 
-<table className="w-full bg-white rounded-xl shadow text-sm">
+<table className="w-full bg-white rounded-xl shadow-sm text-sm overflow-hidden">
 
-<thead>
+<thead className="bg-gray-50 text-gray-700">
 
 <tr className="border-b">
 
@@ -303,7 +297,7 @@ const stock = stocks[p.id] || 0;
 
 return(
 
-<tr key={p.id} className="border-b hover:bg-gray-50">
+<tr key={p.id} className="border-b hover:bg-gray-50 transition cursor-pointer">
 
 <td className="p-3">
 
@@ -325,8 +319,12 @@ setSelected([...selected,p.id])
 
 <td className="p-3">{p.product_code}</td>
 <td className="p-3">{p.name}</td>
-<td className="p-3">Rp {p.price_normal}</td>
-<td className="p-3">Rp {p.reseller_discount}</td>
+<td className="p-3">
+Rp {Number(p.price_normal).toLocaleString("id-ID")}
+</td>
+<td className="p-3">
+Rp {Number(p.reseller_discount).toLocaleString("id-ID")}
+</td>
 <td className="p-3">{p.duration_days} days</td>
 <td className="p-3">{stock}</td>
 
@@ -334,7 +332,7 @@ setSelected([...selected,p.id])
 
 <button
 onClick={()=>toggleProduct(p.id,p.is_active)}
-className={`px-3 py-1 rounded text-white ${
+className={`px-3 py-1 text-xs font-medium rounded-full text-white ${
 p.is_active ? "bg-green-500" : "bg-gray-500"
 }`}
 
@@ -348,7 +346,7 @@ p.is_active ? "bg-green-500" : "bg-gray-500"
 
 <button
 onClick={()=>startEdit(p)}
-className="bg-blue-500 text-white px-3 py-1 rounded"
+className="bg-blue-500 text-white px-3 py-1 rounded-md hover:bg-blue-600 transition"
 
 >
 
@@ -356,7 +354,7 @@ Edit </button>
 
 <button
 onClick={()=>deleteProduct(p.id)}
-className="bg-red-500 text-white px-3 py-1 rounded"
+className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition"
 
 >
 
@@ -414,7 +412,7 @@ Next </button>
 
 {showAddModal && (
 
-<div className="fixed inset-0 flex items-center justify-center">
+<div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
 
 <div className="bg-white p-6 rounded-xl w-[460px] shadow-2xl">
 
@@ -501,7 +499,7 @@ Create Product
 
 {showModal && (
 
-<div className="fixed inset-0 flex items-center justify-center">
+<div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
 
 <div className="bg-white p-6 rounded-xl w-[420px] shadow-2xl">
 
