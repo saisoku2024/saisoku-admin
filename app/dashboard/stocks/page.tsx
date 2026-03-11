@@ -22,6 +22,10 @@ export default function StocksPage() {
   const [editStockData, setEditStockData] = useState<any>(null);
 
   const [csvFile, setCsvFile] = useState<any>(null);
+  
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   const [page, setPage] = useState(1);
   const pageSize = 50;
@@ -130,132 +134,9 @@ export default function StocksPage() {
     setProfile("");
     setPin("");
 
-    fetchStocks();
+   fetchStocks();
 
   };
-{editStockData && (
-
-<div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-
-<div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
-
-<h2 className="font-semibold text-lg">
-Edit Stock
-</h2>
-
-{/* PRODUCT */}
-
-<div>
-<label className="text-sm font-medium">Product</label>
-
-<select
-className="border p-2 rounded w-full"
-value={editStockData.product_id}
-onChange={(e)=>setEditStockData({
-...editStockData,
-product_id:e.target.value
-})}
->
-
-{products.map(p=>(
-<option key={p.id} value={p.id}>
-{p.name}
-</option>
-))}
-
-</select>
-
-</div>
-
-{/* EMAIL */}
-
-<div>
-<label className="text-sm font-medium">Email</label>
-
-<input
-className="border p-2 rounded w-full"
-value={editStockData.email}
-onChange={(e)=>setEditStockData({
-...editStockData,
-email:e.target.value
-})}
-/>
-
-</div>
-
-{/* PASSWORD */}
-
-<div>
-<label className="text-sm font-medium">Password</label>
-
-<input
-className="border p-2 rounded w-full"
-value={editStockData.password}
-onChange={(e)=>setEditStockData({
-...editStockData,
-password:e.target.value
-})}
-/>
-
-</div>
-
-{/* PROFILE */}
-
-<div>
-<label className="text-sm font-medium">Profile</label>
-
-<input
-className="border p-2 rounded w-full"
-value={editStockData.profile}
-onChange={(e)=>setEditStockData({
-...editStockData,
-profile:e.target.value
-})}
-/>
-
-</div>
-
-{/* PIN */}
-
-<div>
-<label className="text-sm font-medium">PIN</label>
-
-<input
-className="border p-2 rounded w-full"
-value={editStockData.pin}
-onChange={(e)=>setEditStockData({
-...editStockData,
-pin:e.target.value
-})}
-/>
-
-</div>
-
-{/* ACTION */}
-
-<div className="flex justify-end gap-3 pt-2">
-
-<button
-onClick={()=>setEditStockData(null)}
-className="px-4 py-2 border rounded"
->
-Cancel
-</button>
-
-<button
-onClick={updateStock}
-className="px-4 py-2 bg-blue-600 text-white rounded"
->
-Update
-</button>
-
-</div>
-
-</div>
-
-</div>
-
-)}
 
   /* ================= UPDATE STOCK ================= */
 
@@ -281,44 +162,128 @@ Update
 
   const uploadCSV = async () => {
 
-    if (!csvFile) {
-      alert("Pilih file CSV dulu");
-      return;
-    }
+  if (!csvFile) {
+    alert("Pilih file CSV dulu");
+    return;
+  }
 
-    if (!productId) {
-      alert("Pilih product dulu");
-      return;
-    }
+  if (!productId) {
+    alert("Pilih product dulu");
+    return;
+  }
+
+  setUploading(true);
+  setUploadProgress(0);
+  setUploadError("");
+
+  try {
 
     const text = await csvFile.text();
     const rows = text.split("\n");
 
+    const rowsData:any[] = [];
+    const emailSet = new Set();
+
+    // ===== PARSE CSV =====
+
     for (let i = 1; i < rows.length; i++) {
 
-      const clean = rows[i].replace("\r", "").trim();
+      const clean = rows[i].replace("\r","").trim();
       if (!clean) continue;
 
       const cols = clean.split(",");
 
-      await supabase
-        .from("product_accounts")
-        .insert({
-          product_id: productId,
-          email: cols[0],
-          password: cols[1],
-          profile: cols[2],
-          pin: cols[3],
-          status: "available"
-        });
+      const email = cols[0]?.trim();
+
+      if (!email) continue;
+
+      // skip duplicate in CSV
+      if (emailSet.has(email)) continue;
+
+      emailSet.add(email);
+
+      rowsData.push({
+        product_id: productId,
+        email,
+        password: cols[1],
+        profile: cols[2],
+        pin: cols[3],
+        status: "available"
+      });
 
     }
 
-    alert("Upload selesai");
+    // ===== CHECK DUPLICATE IN DATABASE =====
+
+    const emailArray = Array.from(emailSet);
+let existing:any[] = [];
+
+for (let i=0;i<emailArray.length;i+=1000){
+
+  const chunk = emailArray.slice(i,i+1000);
+
+  const { data } = await supabase
+    .from("product_accounts")
+    .select("email")
+    .in("email", chunk);
+
+  if(data) existing.push(...data);
+
+}
+
+    const existingEmails = new Set(existing?.map(x=>x.email));
+
+    const filteredRows = rowsData.filter(
+      r => !existingEmails.has(r.email)
+	  
+    );
+	const skipped = rowsData.length - filteredRows.length;
+	
+    // ===== BATCH INSERT =====
+
+    const batchSize = 200;
+
+    for (let i=0;i<filteredRows.length;i+=batchSize){
+
+      const batch = filteredRows.slice(i,i+batchSize);
+
+      const { error } = await supabase
+        .from("product_accounts")
+        .insert(batch);
+
+      if(error){
+        console.error(error);
+        setUploadError("Beberapa row gagal diinsert");
+      }
+
+      const progress = Math.round(
+        ((i + batch.length) / filteredRows.length) * 100
+      );
+
+      setUploadProgress(progress);
+
+    }
+
+    alert(`Upload selesai
+${filteredRows.length} akun ditambahkan
+${skipped} duplicate dilewati`);
+
     fetchStocks();
 
-  };
+  } catch(err){
 
+    console.error(err);
+    setUploadError("Upload gagal");
+
+  }
+
+  setUploading(false);
+
+setTimeout(()=>{
+  setUploadProgress(0);
+},1500);
+
+};
 
   /* ================= DELETE ================= */
 
@@ -442,14 +407,40 @@ Update
             />
 
             <button
-              onClick={uploadCSV}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-            >
-              Upload
-            </button>
+		onClick={uploadCSV}
+		disabled={uploading}
+		className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+			>
+  {uploading ? "Uploading..." : "Upload"}
+</button>
 
           </div>
+		{uploading && (
 
+<div className="mt-4">
+
+<div className="w-full bg-gray-200 rounded h-3 overflow-hidden">
+
+<div
+className="bg-blue-600 h-3 transition-all duration-300"
+style={{width:`${uploadProgress}%`}}
+/>
+
+</div>
+
+<p className="text-xs mt-1 text-gray-600">
+Uploading {uploadProgress}%
+</p>
+
+</div>
+
+)}
+
+{uploadError && (
+<p className="text-red-500 text-xs mt-2">
+{uploadError}
+</p>
+)}
           <p className="text-xs text-gray-500 mt-2">
             format: email,password,profile,pin
           </p>
