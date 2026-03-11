@@ -64,7 +64,6 @@ let monthRevenue = 0
 let totalRevenue = 0
 
 const today = new Date()
-const month = today.getMonth()
 
 data?.forEach((t:any)=>{
 
@@ -76,7 +75,10 @@ if(date.toDateString()===today.toDateString()){
 todayRevenue += t.price
 }
 
-if(date.getMonth()===month){
+if(
+date.getMonth() === today.getMonth() &&
+date.getFullYear() === today.getFullYear()
+){
 monthRevenue += t.price
 }
 
@@ -89,6 +91,22 @@ total:totalRevenue,
 transactions:data?.length || 0,
 active:0
 })
+
+}
+
+/* ================= ACTIVE USERS ================= */
+
+async function loadActiveUsers(){
+
+const { count } = await supabase
+.from("users")
+.select("*", { count: "exact", head: true })
+.eq("is_active", true)
+
+setMeta(prev => ({
+...prev,
+active: count || 0
+}))
 
 }
 
@@ -134,23 +152,24 @@ const {data} = await supabase
 .from("transactions")
 .select("price,created_at")
 
-const months:any = {}
+const months = [
+"Jan","Feb","Mar","Apr","May","Jun",
+"Jul","Aug","Sep","Oct","Nov","Dec"
+]
+
+const values = new Array(12).fill(0)
 
 data?.forEach((t:any)=>{
 
 const d = new Date(t.created_at)
+const m = d.getMonth()
 
-const m = d.toLocaleString("default",{month:"short"})
-
-months[m] = (months[m] || 0) + t.price
+values[m] += t.price
 
 })
 
-const labels = Object.keys(months)
-const values = Object.values(months)
-
 setMonthlyChart({
-labels,
+labels:months,
 datasets:[
 {
 label:"Monthly Revenue",
@@ -208,6 +227,7 @@ loadMeta()
 loadDailyChart()
 loadMonthlyChart()
 loadStatus()
+loadActiveUsers()
 
 },[])
 
@@ -233,26 +253,26 @@ Dashboard Analytics
 
 {/* META CARDS */}
 
-<div className="grid grid-cols-5 gap-5">
+<div className="grid grid-cols-5 gap-5 lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2">
 
 <div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
 <div className="text-xs text-gray-500 mb-1">Revenue Today</div>
 <div className="text-2xl font-semibold text-blue-600">
-Rp {meta.today}
+Rp {meta.today.toLocaleString("id-ID")}
 </div>
 </div>
 
 <div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
 <div className="text-xs text-gray-500 mb-1">Revenue Month</div>
 <div className="text-2xl font-semibold text-green-600">
-Rp {meta.month}
+Rp {meta.month.toLocaleString("id-ID")}
 </div>
 </div>
 
 <div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
 <div className="text-xs text-gray-500 mb-1">Revenue Total</div>
 <div className="text-2xl font-semibold text-purple-600">
-Rp {meta.total}
+Rp {meta.total.toLocaleString("id-ID")}
 </div>
 </div>
 
@@ -264,9 +284,9 @@ Rp {meta.total}
 </div>
 
 <div className="bg-white rounded-xl border shadow-sm p-5 hover:shadow-md transition">
-<div className="text-xs text-gray-500 mb-1">Active Accounts</div>
+<div className="text-xs text-gray-500 mb-1">Active Users</div>
 <div className="text-2xl font-semibold text-emerald-600">
-{status.active}
+{meta.active}
 </div>
 </div>
 
@@ -290,7 +310,13 @@ Today
 
 </div>
 
-{dailyChart && <Bar data={dailyChart} options={chartOptions}/>}
+{dailyChart ? (
+<Bar data={dailyChart} options={chartOptions}/>
+) : (
+<div className="text-sm text-gray-400">
+Loading chart...
+</div>
+)}
 
 </div>
 
