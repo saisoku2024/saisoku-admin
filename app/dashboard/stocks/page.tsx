@@ -398,7 +398,38 @@ setTimeout(()=>{
             Bulk Upload CSV
           </h2>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
+
+<select
+  className="border p-2 rounded"
+  value={productId}
+  onChange={(e)=>setProductId(e.target.value)}
+>
+  <option value="">Select Product</option>
+
+  {products.map(p => (
+    <option key={p.id} value={p.id}>
+      {p.name}
+    </option>
+  ))}
+
+</select>
+
+<input
+  type="file"
+  accept=".csv"
+  onChange={(e) => setCsvFile(e.target.files?.[0])}
+/>
+
+<button
+  onClick={uploadCSV}
+  disabled={uploading}
+  className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+>
+  {uploading ? "Uploading..." : "Upload"}
+</button>
+
+</div>
 
             <input
               type="file"
