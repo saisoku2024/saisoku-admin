@@ -4,8 +4,6 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function StocksPage() {
 
-  /* ================= STATE ================= */
-
   const [products, setProducts] = useState<any[]>([]);
   const [stocks, setStocks] = useState<any[]>([]);
 
@@ -22,7 +20,6 @@ export default function StocksPage() {
   const [editStockData, setEditStockData] = useState<any>(null);
 
   const [csvFile, setCsvFile] = useState<any>(null);
-  
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
@@ -34,9 +31,6 @@ export default function StocksPage() {
     available: 0,
     sold: 0
   });
-
-
-  /* ================= INIT ================= */
 
   useEffect(() => {
 
@@ -62,9 +56,6 @@ export default function StocksPage() {
 
   }, [page, search, filterProduct]);
 
-
-  /* ================= FETCH PRODUCTS ================= */
-
   const fetchProducts = async () => {
 
     const { data } = await supabase
@@ -75,9 +66,6 @@ export default function StocksPage() {
     setProducts(data || []);
 
   };
-
-
-  /* ================= FETCH STOCK ================= */
 
   const fetchStocks = async () => {
 
@@ -108,38 +96,6 @@ export default function StocksPage() {
 
   };
 
-
-  /* ================= ADD STOCK ================= */
-
-  const addStock = async () => {
-
-    if (!email || !password || !productId) {
-      alert("Field wajib diisi");
-      return;
-    }
-
-    await supabase
-      .from("product_accounts")
-      .insert({
-        product_id: productId,
-        email,
-        password,
-        profile,
-        pin,
-        status: "available"
-      });
-
-    setEmail("");
-    setPassword("");
-    setProfile("");
-    setPin("");
-
-   fetchStocks();
-
-  };
-
-  /* ================= UPDATE STOCK ================= */
-
   const updateStock = async () => {
 
     await supabase
@@ -157,136 +113,6 @@ export default function StocksPage() {
 
   };
 
-
-  /* ================= CSV UPLOAD ================= */
-
-  const uploadCSV = async () => {
-
-  if (!csvFile) {
-    alert("Pilih file CSV dulu");
-    return;
-  }
-
-  if (!productId) {
-    alert("Pilih product dulu");
-    return;
-  }
-
-  setUploading(true);
-  setUploadProgress(0);
-  setUploadError("");
-
-  try {
-
-    const text = await csvFile.text();
-    const rows = text.split("\n");
-
-    const rowsData:any[] = [];
-    const emailSet = new Set();
-
-    // ===== PARSE CSV =====
-
-    for (let i = 1; i < rows.length; i++) {
-
-      const clean = rows[i].replace("\r","").trim();
-      if (!clean) continue;
-
-      const cols = clean.split(",");
-
-      const email = cols[0]?.trim();
-
-      if (!email) continue;
-
-      // skip duplicate in CSV
-      if (emailSet.has(email)) continue;
-
-      emailSet.add(email);
-
-      rowsData.push({
-        product_id: productId,
-        email,
-        password: cols[1],
-        profile: cols[2],
-        pin: cols[3],
-        status: "available"
-      });
-
-    }
-
-    // ===== CHECK DUPLICATE IN DATABASE =====
-
-    const emailArray = Array.from(emailSet);
-let existing:any[] = [];
-
-for (let i=0;i<emailArray.length;i+=1000){
-
-  const chunk = emailArray.slice(i,i+1000);
-
-  const { data } = await supabase
-    .from("product_accounts")
-    .select("email")
-    .in("email", chunk);
-
-  if(data) existing.push(...data);
-
-}
-
-    const existingEmails = new Set(existing?.map(x=>x.email));
-
-    const filteredRows = rowsData.filter(
-      r => !existingEmails.has(r.email)
-	  
-    );
-	const skipped = rowsData.length - filteredRows.length;
-	
-    // ===== BATCH INSERT =====
-
-    const batchSize = 200;
-
-    for (let i=0;i<filteredRows.length;i+=batchSize){
-
-      const batch = filteredRows.slice(i,i+batchSize);
-
-      const { error } = await supabase
-        .from("product_accounts")
-        .insert(batch);
-
-      if(error){
-        console.error(error);
-        setUploadError("Beberapa row gagal diinsert");
-      }
-
-      const progress = Math.round(
-        ((i + batch.length) / filteredRows.length) * 100
-      );
-
-      setUploadProgress(progress);
-
-    }
-
-    alert(`Upload selesai
-${filteredRows.length} akun ditambahkan
-${skipped} duplicate dilewati`);
-
-    fetchStocks();
-
-  } catch(err){
-
-    console.error(err);
-    setUploadError("Upload gagal");
-
-  }
-
-  setUploading(false);
-
-setTimeout(()=>{
-  setUploadProgress(0);
-},1500);
-
-};
-
-  /* ================= DELETE ================= */
-
   const deleteStock = async (id: any) => {
 
     if (!confirm("Delete stock?")) return;
@@ -300,38 +126,6 @@ setTimeout(()=>{
 
   };
 
-  const deleteAllStock = async () => {
-
-    if (!confirm("Delete ALL stock?")) return;
-
-    await supabase
-      .from("product_accounts")
-      .delete()
-      .not("id", "is", null);
-
-    fetchStocks();
-
-  };
-
-  const deleteByProduct = async () => {
-
-    if (!filterProduct) {
-      alert("Pilih produk dulu");
-      return;
-    }
-
-    await supabase
-      .from("product_accounts")
-      .delete()
-      .eq("product_id", filterProduct);
-
-    fetchStocks();
-
-  };
-
-
-  /* ================= PAGINATION ================= */
-
   const nextPage = () => {
     if (stocks.length === pageSize) setPage(page + 1);
   };
@@ -340,295 +134,44 @@ setTimeout(()=>{
     if (page > 1) setPage(page - 1);
   };
 
-
-  /* ================= UI ================= */
-
   return (
 
-    <div className="min-h-screen relative bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 overflow-hidden">
+<div className="min-h-screen bg-gray-100 p-8">
 
-      {/* BACKGROUND APPS */}
+<div className="max-w-6xl mx-auto space-y-6">
 
-      <div className="absolute inset-0 pointer-events-none opacity-20 blur-2xl flex flex-wrap gap-20 justify-center items-center">
+<h1 className="text-2xl font-bold">Stock Management</h1>
 
-        <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" className="h-20" />
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/84/Spotify_icon.svg" className="h-16" />
-        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg" className="h-16" />
-        <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" className="h-16" />
-        <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/ChatGPT_logo.svg" className="h-16" />
+<div className="flex gap-4">
 
-      </div>
+<div className="bg-white px-4 py-2 rounded shadow">
+Available : {stats.available}
+</div>
 
+<div className="bg-white px-4 py-2 rounded shadow">
+Sold : {stats.sold}
+</div>
 
-      <div className="max-w-6xl mx-auto space-y-5 relative z-10">
+</div>
 
-        <h1 className="text-2xl font-bold">Stock Management</h1>
-
-
-        {/* STATS */}
-
-        <div className="flex gap-4">
-
-          <div className="bg-white px-5 py-3 rounded shadow text-sm font-medium">
-            Available : {stats.available}
-          </div>
-
-          <div className="bg-white px-5 py-3 rounded shadow text-sm font-medium">
-            Sold : {stats.sold}
-          </div>
-
-        </div>
-
-
-        {/* ADD BUTTON */}
-
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-black text-white px-4 py-2 rounded"
-        >
-          + Add Stock
-        </button>
-
-
-        {/* CSV */}
-
-        <div className="bg-white p-5 rounded-xl shadow">
-
-          <h2 className="font-semibold mb-3">
-            Bulk Upload CSV
-          </h2>
-
-          <div className="flex gap-3 items-center">
-
-<select
-  className="border p-2 rounded"
-  value={productId}
-  onChange={(e)=>setProductId(e.target.value)}
->
-  <option value="">Select Product</option>
-
-  {products.map(p => (
-    <option key={p.id} value={p.id}>
-      {p.name}
-    </option>
-  ))}
-
-</select>
+<div className="bg-white p-4 rounded shadow flex gap-3">
 
 <input
-  type="file"
-  accept=".csv"
-  onChange={(e) => setCsvFile(e.target.files?.[0])}
+className="border p-2 rounded"
+placeholder="Search email..."
+value={search}
+onChange={(e)=>setSearch(e.target.value)}
 />
-
-<button
-  onClick={uploadCSV}
-  disabled={uploading}
-  className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
->
-  {uploading ? "Uploading..." : "Upload"}
-</button>
-
-</div>
-
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => setCsvFile(e.target.files?.[0])}
-            />
-
-            <button
-		onClick={uploadCSV}
-		disabled={uploading}
-		className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-			>
-  {uploading ? "Uploading..." : "Upload"}
-</button>
-
-          </div>
-		{uploading && (
-
-<div className="mt-4">
-
-<div className="w-full bg-gray-200 rounded h-3 overflow-hidden">
-
-<div
-className="bg-blue-600 h-3 transition-all duration-300"
-style={{width:`${uploadProgress}%`}}
-/>
-
-</div>
-
-<p className="text-xs mt-1 text-gray-600">
-Uploading {uploadProgress}%
-</p>
-
-</div>
-
-)}
-
-{uploadError && (
-<p className="text-red-500 text-xs mt-2">
-{uploadError}
-</p>
-)}
-          <p className="text-xs text-gray-500 mt-2">
-            format: email,password,profile,pin
-          </p>
-
-        </div>
-
-
-        {/* FILTER */}
-
-        <div className="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow">
-
-          <input
-            className="border p-2 rounded"
-            placeholder="Search email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
-          <select
-            className="border p-2 rounded"
-            value={filterProduct}
-            onChange={(e) => setFilterProduct(e.target.value)}
-          >
-
-            <option value="">All Products</option>
-
-            {products.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-
-          </select>
-
-          <button
-            onClick={deleteByProduct}
-            className="bg-red-500 text-white px-3 py-2 rounded"
-          >
-            Delete by Product
-          </button>
-
-          <button
-            onClick={deleteAllStock}
-            className="bg-red-700 text-white px-3 py-2 rounded"
-          >
-            Delete ALL
-          </button>
-
-        </div>
-
-
-        {/* TABLE */}
-
-        <table className="w-full bg-white rounded-xl shadow">
-
-          <thead>
-
-            <tr className="border-b bg-gray-50 text-sm">
-
-              <th className="p-3 text-left">Product</th>
-              <th className="p-3 text-left">Email</th>
-              <th className="p-3 text-left">Profile</th>
-              <th className="p-3 text-left">PIN</th>
-              <th className="p-3 text-left">Status</th>
-              <th className="p-3 text-left">Action</th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {stocks.map((s) => (
-
-              <tr key={s.id} className="border-b hover:bg-gray-50 text-sm">
-
-                <td className="p-3">{s.products?.name}</td>
-                <td className="p-3">{s.email}</td>
-                <td className="p-3">{s.profile}</td>
-                <td className="p-3">{s.pin}</td>
-                <td className="p-3">{s.status}</td>
-
-                <td className="p-3 flex gap-2">
-
-                  <button
-                    onClick={() => setEditStockData(s)}
-                    className="bg-blue-500 text-white px-3 py-1 rounded"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => deleteStock(s.id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded"
-                  >
-                    Delete
-                  </button>
-
-                </td>
-
-              </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
-
-        {/* PAGINATION */}
-
-        <div className="flex gap-3 items-center">
-
-          <button
-            onClick={prevPage}
-            className="bg-gray-300 px-4 py-2 rounded"
-          >
-            Prev
-          </button>
-
-          <div>Page {page}</div>
-
-          <button
-            onClick={nextPage}
-            className="bg-black text-white px-4 py-2 rounded"
-          >
-            Next
-          </button>
-
-        </div>
-
-      </div>
-{editStockData && (
-
-<div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
-
-<div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
-
-<h2 className="font-semibold text-lg">
-Edit Stock
-</h2>
-
-{/* PRODUCT */}
-
-<div>
-<label className="text-sm font-medium">Product</label>
 
 <select
-className="border p-2 rounded w-full"
-value={editStockData.product_id}
-onChange={(e)=>setEditStockData({
-...editStockData,
-product_id:e.target.value
-})}
+className="border p-2 rounded"
+value={filterProduct}
+onChange={(e)=>setFilterProduct(e.target.value)}
 >
 
-{products.map(p=>(
+<option value="">All Products</option>
+
+{products.map(p => (
 <option key={p.id} value={p.id}>
 {p.name}
 </option>
@@ -638,11 +181,87 @@ product_id:e.target.value
 
 </div>
 
-{/* EMAIL */}
+<table className="w-full bg-white rounded shadow">
+
+<thead>
+<tr className="border-b bg-gray-50 text-sm">
+<th className="p-3 text-left">Product</th>
+<th className="p-3 text-left">Email</th>
+<th className="p-3 text-left">Profile</th>
+<th className="p-3 text-left">PIN</th>
+<th className="p-3 text-left">Status</th>
+<th className="p-3 text-left">Action</th>
+</tr>
+</thead>
+
+<tbody>
+
+{stocks.map((s)=>(
+<tr key={s.id} className="border-b text-sm">
+
+<td className="p-3">{s.products?.name}</td>
+<td className="p-3">{s.email}</td>
+<td className="p-3">{s.profile}</td>
+<td className="p-3">{s.pin}</td>
+<td className="p-3">{s.status}</td>
+
+<td className="p-3 flex gap-2">
+
+<button
+onClick={()=>setEditStockData(s)}
+className="bg-blue-500 text-white px-3 py-1 rounded"
+>
+Edit
+</button>
+
+<button
+onClick={()=>deleteStock(s.id)}
+className="bg-red-500 text-white px-3 py-1 rounded"
+>
+Delete
+</button>
+
+</td>
+
+</tr>
+))}
+
+</tbody>
+
+</table>
+
+<div className="flex gap-3 items-center">
+
+<button
+onClick={prevPage}
+className="bg-gray-300 px-4 py-2 rounded"
+>
+Prev
+</button>
+
+<div>Page {page}</div>
+
+<button
+onClick={nextPage}
+className="bg-black text-white px-4 py-2 rounded"
+>
+Next
+</button>
+
+</div>
+
+</div>
+
+{editStockData && (
+
+<div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
+
+<div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
+
+<h2 className="font-semibold text-lg">Edit Stock</h2>
 
 <div>
 <label className="text-sm font-medium">Email</label>
-
 <input
 className="border p-2 rounded w-full"
 value={editStockData.email}
@@ -651,14 +270,10 @@ onChange={(e)=>setEditStockData({
 email:e.target.value
 })}
 />
-
 </div>
-
-{/* PASSWORD */}
 
 <div>
 <label className="text-sm font-medium">Password</label>
-
 <input
 className="border p-2 rounded w-full"
 value={editStockData.password}
@@ -667,14 +282,10 @@ onChange={(e)=>setEditStockData({
 password:e.target.value
 })}
 />
-
 </div>
-
-{/* PROFILE */}
 
 <div>
 <label className="text-sm font-medium">Profile</label>
-
 <input
 className="border p-2 rounded w-full"
 value={editStockData.profile}
@@ -683,14 +294,10 @@ onChange={(e)=>setEditStockData({
 profile:e.target.value
 })}
 />
-
 </div>
-
-{/* PIN */}
 
 <div>
 <label className="text-sm font-medium">PIN</label>
-
 <input
 className="border p-2 rounded w-full"
 value={editStockData.pin}
@@ -699,10 +306,7 @@ onChange={(e)=>setEditStockData({
 pin:e.target.value
 })}
 />
-
 </div>
-
-{/* ACTION */}
 
 <div className="flex justify-end gap-3 pt-2">
 
@@ -727,8 +331,9 @@ Update
 </div>
 
 )}
-    </div>
 
-  );
+</div>
+
+);
 
 }
