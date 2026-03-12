@@ -11,6 +11,7 @@ const supabase = createClient(
 );
 
 serve(async (req) => {
+	//TELEGRAM_WEBHOOK_SECRET
   try {
     const body = await req.json();
     const message = body.message;
