@@ -199,7 +199,7 @@ export default function DashboardPage() {
       .order("created_at", { ascending: false })
 
     if (error) throw error
-    return (data ?? []) as TxRow[]
+    return (data ?? []) as unknown as TxRow[]
   }
 
   async function fetchActiveUsersCount(): Promise<number> {
