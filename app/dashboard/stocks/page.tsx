@@ -8,18 +8,44 @@ type ProductRow = any;
 // CSV format (semicolon):
 // email;password;profile;pin
 function parseCsvSemicolon(text: string) {
-  const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(";").map((h) => h.trim().toLowerCase());
+  // Hapus kutip pembungkus di awal-akhir baris kalau ada: "...."
+  const cleanLine = (line: string) => {
+    if (line.startsWith('"') && line.endsWith('"')) {
+      return line.slice(1, -1);
+    }
+    return line;
+  };
+
+  const cleanCell = (cell: string) => {
+    const c = cell.trim();
+    // hapus kutip pembungkus cell kalau ada
+    if (c.startsWith('"') && c.endsWith('"')) return c.slice(1, -1).trim();
+    return c;
+  };
+
+  const headerLine = cleanLine(lines[0]);
+  const headers = headerLine
+    .split(";")
+    .map((h) => cleanCell(h).toLowerCase());
+
   const rows: any[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(";");
+    const rowLine = cleanLine(lines[i]);
+    const cols = rowLine.split(";").map(cleanCell);
+
     const obj: any = {};
-    headers.forEach((h, idx) => (obj[h] = (cols[idx] ?? "").trim()));
+    headers.forEach((h, idx) => (obj[h] = cols[idx] ?? ""));
     rows.push(obj);
   }
+
   return rows;
 }
 
@@ -166,8 +192,11 @@ export default function StocksPage() {
       const rows = parseCsvSemicolon(text);
       if (!rows.length) throw new Error("CSV kosong / format salah.");
 
-     const badIndex = rows.findIndex((r: any) => !(r.email || "").trim());
-	if (badIndex !== -1) throw new Error(`Baris ke-${badIndex + 2} kolom Email/NoHP kosong`);
+      // ✅ email field = identifier (boleh email/noHP), wajib tidak kosong
+      const badIndex = rows.findIndex((r: any) => !(r.email || "").trim());
+      if (badIndex !== -1) {
+        throw new Error(`Baris ke-${badIndex + 2} kolom Email/NoHP kosong`);
+      }
 
       const payload = rows.map((r: any) => ({
         product_id: filterProduct,
@@ -364,29 +393,51 @@ export default function StocksPage() {
 
             <div>
               <label className="text-sm font-medium">Email</label>
-              <input className="border p-2 rounded w-full" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input
+                className="border p-2 rounded w-full"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
 
             <div>
               <label className="text-sm font-medium">Password</label>
-              <input className="border p-2 rounded w-full" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <input
+                className="border p-2 rounded w-full"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
             </div>
 
             <div>
               <label className="text-sm font-medium">Profile</label>
-              <input className="border p-2 rounded w-full" value={profile} onChange={(e) => setProfile(e.target.value)} />
+              <input
+                className="border p-2 rounded w-full"
+                value={profile}
+                onChange={(e) => setProfile(e.target.value)}
+              />
             </div>
 
             <div>
               <label className="text-sm font-medium">PIN</label>
-              <input className="border p-2 rounded w-full" value={pin} onChange={(e) => setPin(e.target.value)} />
+              <input
+                className="border p-2 rounded w-full"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+              />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 border rounded">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 border rounded"
+              >
                 Cancel
               </button>
-              <button onClick={addStock} className="px-4 py-2 bg-green-600 text-white rounded">
+              <button
+                onClick={addStock}
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
                 Save
               </button>
             </div>
@@ -404,7 +455,9 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.email}
-                onChange={(e) => setEditStockData({ ...editStockData, email: e.target.value })}
+                onChange={(e) =>
+                  setEditStockData({ ...editStockData, email: e.target.value })
+                }
               />
             </div>
 
@@ -413,7 +466,12 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.password}
-                onChange={(e) => setEditStockData({ ...editStockData, password: e.target.value })}
+                onChange={(e) =>
+                  setEditStockData({
+                    ...editStockData,
+                    password: e.target.value,
+                  })
+                }
               />
             </div>
 
@@ -422,7 +480,12 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.profile}
-                onChange={(e) => setEditStockData({ ...editStockData, profile: e.target.value })}
+                onChange={(e) =>
+                  setEditStockData({
+                    ...editStockData,
+                    profile: e.target.value,
+                  })
+                }
               />
             </div>
 
@@ -431,15 +494,23 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.pin}
-                onChange={(e) => setEditStockData({ ...editStockData, pin: e.target.value })}
+                onChange={(e) =>
+                  setEditStockData({ ...editStockData, pin: e.target.value })
+                }
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button onClick={() => setEditStockData(null)} className="px-4 py-2 border rounded">
+              <button
+                onClick={() => setEditStockData(null)}
+                className="px-4 py-2 border rounded"
+              >
                 Cancel
               </button>
-              <button onClick={updateStock} className="px-4 py-2 bg-blue-600 text-white rounded">
+              <button
+                onClick={updateStock}
+                className="px-4 py-2 bg-blue-600 text-white rounded"
+              >
                 Update
               </button>
             </div>
