@@ -166,8 +166,8 @@ export default function StocksPage() {
       const rows = parseCsvSemicolon(text);
       if (!rows.length) throw new Error("CSV kosong / format salah.");
 
-      const bad = rows.find((r: any) => !r.email);
-      if (bad) throw new Error("Ada baris yang email-nya kosong.");
+     const badIndex = rows.findIndex((r: any) => !(r.email || "").trim());
+	if (badIndex !== -1) throw new Error(`Baris ke-${badIndex + 2} kolom Email/NoHP kosong`);
 
       const payload = rows.map((r: any) => ({
         product_id: filterProduct,
