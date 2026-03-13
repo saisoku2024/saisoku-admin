@@ -15,13 +15,19 @@ function parseCsvSemicolon(text: string) {
   const rows: any[] = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(";"); // ✅ delimiter ;
+    const cols = lines[i].split(";");
     const obj: any = {};
     headers.forEach((h, idx) => (obj[h] = (cols[idx] ?? "").trim()));
     rows.push(obj);
   }
-
   return rows;
+}
+
+// ✅ Aman untuk join supabase: kadang products object, kadang array
+function getProductName(products: any) {
+  if (!products) return "-";
+  if (Array.isArray(products)) return products?.[0]?.name ?? "-";
+  return products?.name ?? "-";
 }
 
 export default function StocksPage() {
@@ -29,14 +35,14 @@ export default function StocksPage() {
   const [stocks, setStocks] = useState<StockRow[]>([]);
 
   const [search, setSearch] = useState("");
-  const [filterProduct, setFilterProduct] = useState(""); // dipakai untuk filter + bulk upload (pilih produk dulu)
+  const [filterProduct, setFilterProduct] = useState("");
 
   // Add stock form
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [profile, setProfile] = useState("");
   const [pin, setPin] = useState("");
-  const [productId, setProductId] = useState(""); // untuk Add Stock modal
+  const [productId, setProductId] = useState("");
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editStockData, setEditStockData] = useState<any>(null);
@@ -50,7 +56,6 @@ export default function StocksPage() {
   const [page, setPage] = useState(1);
   const pageSize = 50;
 
-  // Stats (note: stats ini hanya untuk data yang tampil di page ini)
   const [stats, setStats] = useState({ available: 0, sold: 0 });
 
   useEffect(() => {
@@ -114,10 +119,7 @@ export default function StocksPage() {
       status: "available",
     });
 
-    if (error) {
-      alert("Gagal add stock: " + error.message);
-      return;
-    }
+    if (error) return alert("Gagal add stock: " + error.message);
 
     setEmail("");
     setPassword("");
@@ -146,7 +148,6 @@ export default function StocksPage() {
 
   const deleteStock = async (id: any) => {
     if (!confirm("Delete stock?")) return;
-
     await supabase.from("product_accounts").delete().eq("id", id);
     fetchStocks();
   };
@@ -154,14 +155,8 @@ export default function StocksPage() {
   const bulkUploadCsv = async () => {
     setUploadError("");
 
-    if (!filterProduct) {
-      setUploadError("Pilih produk dulu sebelum upload CSV.");
-      return;
-    }
-    if (!csvFile) {
-      setUploadError("Pilih file CSV dulu.");
-      return;
-    }
+    if (!filterProduct) return setUploadError("Pilih produk dulu sebelum upload CSV.");
+    if (!csvFile) return setUploadError("Pilih file CSV dulu.");
 
     setUploading(true);
     setUploadProgress(0);
@@ -169,11 +164,8 @@ export default function StocksPage() {
     try {
       const text = await csvFile.text();
       const rows = parseCsvSemicolon(text);
-
       if (!rows.length) throw new Error("CSV kosong / format salah.");
 
-      // Validasi header minimal
-      // Wajib ada: email (password/profile/pin optional)
       const bad = rows.find((r: any) => !r.email);
       if (bad) throw new Error("Ada baris yang email-nya kosong.");
 
@@ -186,14 +178,12 @@ export default function StocksPage() {
         status: "available",
       }));
 
-      const batchSize = 200; // aman untuk insert bertahap
+      const batchSize = 200;
       for (let i = 0; i < payload.length; i += batchSize) {
         const batch = payload.slice(i, i + batchSize);
         const { error } = await supabase.from("product_accounts").insert(batch);
         if (error) throw error;
-
-        const progress = Math.round(((i + batch.length) / payload.length) * 100);
-        setUploadProgress(progress);
+        setUploadProgress(Math.round(((i + batch.length) / payload.length) * 100));
       }
 
       setCsvFile(null);
@@ -211,7 +201,6 @@ export default function StocksPage() {
   const nextPage = () => {
     if (stocks.length === pageSize) setPage(page + 1);
   };
-
   const prevPage = () => {
     if (page > 1) setPage(page - 1);
   };
@@ -230,7 +219,6 @@ export default function StocksPage() {
           </div>
         </div>
 
-        {/* Filter + actions */}
         <div className="bg-white p-4 rounded shadow flex flex-wrap gap-3 items-center">
           <input
             className="border p-2 rounded"
@@ -251,7 +239,7 @@ export default function StocksPage() {
             }}
           >
             <option value="">All Products</option>
-            {products.map((p) => (
+            {products.map((p: any) => (
               <option key={p.id} value={p.id}>
                 {p.name}
               </option>
@@ -265,7 +253,6 @@ export default function StocksPage() {
             + Add Stock
           </button>
 
-          {/* Bulk upload (pilih produk dulu) */}
           <label className="border px-4 py-2 rounded cursor-pointer">
             Pilih CSV
             <input
@@ -309,7 +296,7 @@ export default function StocksPage() {
           <tbody>
             {stocks.map((s: any) => (
               <tr key={s.id} className="border-b text-sm">
-                <td className="p-3">{s.products?.name}</td>
+                <td className="p-3">{getProductName(s.products)}</td>
                 <td className="p-3">{s.email}</td>
                 <td className="p-3">{s.profile}</td>
                 <td className="p-3">{s.pin}</td>
@@ -344,25 +331,16 @@ export default function StocksPage() {
         </table>
 
         <div className="flex gap-3 items-center">
-          <button
-            onClick={prevPage}
-            className="bg-gray-300 px-4 py-2 rounded"
-          >
+          <button onClick={prevPage} className="bg-gray-300 px-4 py-2 rounded">
             Prev
           </button>
-
           <div>Page {page}</div>
-
-          <button
-            onClick={nextPage}
-            className="bg-black text-white px-4 py-2 rounded"
-          >
+          <button onClick={nextPage} className="bg-black text-white px-4 py-2 rounded">
             Next
           </button>
         </div>
       </div>
 
-      {/* Add modal */}
       {showAddModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
           <div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
@@ -376,7 +354,7 @@ export default function StocksPage() {
                 onChange={(e) => setProductId(e.target.value)}
               >
                 <option value="">Pilih produk</option>
-                {products.map((p) => (
+                {products.map((p: any) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
@@ -386,52 +364,29 @@ export default function StocksPage() {
 
             <div>
               <label className="text-sm font-medium">Email</label>
-              <input
-                className="border p-2 rounded w-full"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <input className="border p-2 rounded w-full" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
 
             <div>
               <label className="text-sm font-medium">Password</label>
-              <input
-                className="border p-2 rounded w-full"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <input className="border p-2 rounded w-full" value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
 
             <div>
               <label className="text-sm font-medium">Profile</label>
-              <input
-                className="border p-2 rounded w-full"
-                value={profile}
-                onChange={(e) => setProfile(e.target.value)}
-              />
+              <input className="border p-2 rounded w-full" value={profile} onChange={(e) => setProfile(e.target.value)} />
             </div>
 
             <div>
               <label className="text-sm font-medium">PIN</label>
-              <input
-                className="border p-2 rounded w-full"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-              />
+              <input className="border p-2 rounded w-full" value={pin} onChange={(e) => setPin(e.target.value)} />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="px-4 py-2 border rounded"
-              >
+              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 border rounded">
                 Cancel
               </button>
-
-              <button
-                onClick={addStock}
-                className="px-4 py-2 bg-green-600 text-white rounded"
-              >
+              <button onClick={addStock} className="px-4 py-2 bg-green-600 text-white rounded">
                 Save
               </button>
             </div>
@@ -439,7 +394,6 @@ export default function StocksPage() {
         </div>
       )}
 
-      {/* Edit modal */}
       {editStockData && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
           <div className="bg-white p-6 rounded-xl w-[420px] shadow-xl space-y-4">
@@ -450,12 +404,7 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.email}
-                onChange={(e) =>
-                  setEditStockData({
-                    ...editStockData,
-                    email: e.target.value,
-                  })
-                }
+                onChange={(e) => setEditStockData({ ...editStockData, email: e.target.value })}
               />
             </div>
 
@@ -464,12 +413,7 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.password}
-                onChange={(e) =>
-                  setEditStockData({
-                    ...editStockData,
-                    password: e.target.value,
-                  })
-                }
+                onChange={(e) => setEditStockData({ ...editStockData, password: e.target.value })}
               />
             </div>
 
@@ -478,12 +422,7 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.profile}
-                onChange={(e) =>
-                  setEditStockData({
-                    ...editStockData,
-                    profile: e.target.value,
-                  })
-                }
+                onChange={(e) => setEditStockData({ ...editStockData, profile: e.target.value })}
               />
             </div>
 
@@ -492,27 +431,15 @@ export default function StocksPage() {
               <input
                 className="border p-2 rounded w-full"
                 value={editStockData.pin}
-                onChange={(e) =>
-                  setEditStockData({
-                    ...editStockData,
-                    pin: e.target.value,
-                  })
-                }
+                onChange={(e) => setEditStockData({ ...editStockData, pin: e.target.value })}
               />
             </div>
 
             <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setEditStockData(null)}
-                className="px-4 py-2 border rounded"
-              >
+              <button onClick={() => setEditStockData(null)} className="px-4 py-2 border rounded">
                 Cancel
               </button>
-
-              <button
-                onClick={updateStock}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
-              >
+              <button onClick={updateStock} className="px-4 py-2 bg-blue-600 text-white rounded">
                 Update
               </button>
             </div>
