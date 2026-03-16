@@ -18,18 +18,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 type TxRow = {
   price: number | null
-  created_at: string
-  duration_days: number | null
+  created_at: string | null
+  expired_at: string | null
+  status: string | null
   products?: { name: string | null } | null
-  product_accounts?: { sold_at: string | null } | null
 }
 
 function currencyIDR(v: number) {
   return `Rp ${v.toLocaleString("id-ID")}`
-}
-
-function daysBetween(from: Date, to: Date) {
-  return Math.floor((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 /** ---------- UI Primitives (konsisten) ---------- */
@@ -51,7 +47,7 @@ function Panel({
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-sm font-medium text-gray-800">{title}</h2>
-          {subtitle ? <p className="text-xs text-gray-500 mt-1">{subtitle}</p> : null}
+          {subtitle ? <p className="mt-1 text-xs text-gray-500">{subtitle}</p> : null}
         </div>
         {right}
       </div>
@@ -70,7 +66,7 @@ function StatCard({
   accentClass?: string
 }) {
   return (
-    <div className="rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition">
+    <div className="rounded-2xl border bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="text-xs text-gray-500">{label}</div>
       <div className={`mt-1 text-2xl font-semibold tracking-tight ${accentClass}`}>
         {value}
@@ -79,11 +75,7 @@ function StatCard({
   )
 }
 
-function Skeleton({
-  className = "",
-}: {
-  className?: string
-}) {
+function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-xl bg-gray-100 ${className}`} />
 }
 
@@ -135,7 +127,6 @@ export default function DashboardPage() {
     []
   )
 
-  // Chart options: clean SaaS look
   const chartOptionsCount = useMemo(
     () => ({
       responsive: true,
@@ -191,11 +182,9 @@ export default function DashboardPage() {
   )
 
   async function fetchTransactionsOnce(): Promise<TxRow[]> {
-    // NOTE: select join ini mengasumsikan relasi sudah ada di Supabase (products, product_accounts).
-    // Kalau nama relasi beda, sesuaikan string select-nya.
     const { data, error } = await supabase
       .from("transactions")
-      .select("price,created_at,duration_days,products(name),product_accounts(sold_at)")
+      .select("price,created_at,expired_at,status,products(name)")
       .order("created_at", { ascending: false })
 
     if (error) throw error
@@ -227,35 +216,40 @@ export default function DashboardPage() {
     let expiring = 0
     let expired = 0
 
-    for (const t of txs) {
+    const paidTransactions = txs.filter((t) => t.status === "paid")
+
+    for (const t of paidTransactions) {
       const price = Number(t.price ?? 0)
-      const created = new Date(t.created_at)
+      const created = t.created_at ? new Date(t.created_at) : null
 
       totalRevenue += price
-      monthlyRevenue[created.getMonth()] += price
 
-      if (created.toDateString() === todayStr) todayRevenue += price
-      if (created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()) {
-        monthRevenue += price
+      if (created && !Number.isNaN(created.getTime())) {
+        monthlyRevenue[created.getMonth()] += price
+
+        if (created.toDateString() === todayStr) todayRevenue += price
+        if (created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()) {
+          monthRevenue += price
+        }
       }
 
       const productName = t.products?.name?.trim() || "Unknown"
       productCounts[productName] = (productCounts[productName] || 0) + 1
 
-      // Account status
-      const soldAtStr = t.product_accounts?.sold_at
-      if (soldAtStr) {
-        const soldAt = new Date(soldAtStr)
-        const duration = Number(t.duration_days ?? 30)
-        const usedDays = daysBetween(soldAt, now)
+      if (t.expired_at) {
+        const expiredAt = new Date(t.expired_at)
 
-        if (usedDays <= duration - 4) active++
-        else if (usedDays <= duration) expiring++
-        else expired++
+        if (!Number.isNaN(expiredAt.getTime())) {
+          const diffMs = expiredAt.getTime() - now.getTime()
+          const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+          if (diffDays > 3) active++
+          else if (diffDays >= 0) expiring++
+          else expired++
+        }
       }
     }
 
-    // Build daily chart data (by product)
     const labels = Object.keys(productCounts)
     const values = Object.values(productCounts)
 
@@ -263,7 +257,7 @@ export default function DashboardPage() {
       labels,
       datasets: [
         {
-          label: "Daily Sales",
+          label: "Sales by Product",
           data: values,
           borderRadius: 8,
           backgroundColor: "rgba(59,130,246,0.85)",
@@ -289,7 +283,7 @@ export default function DashboardPage() {
       today: todayRevenue,
       month: monthRevenue,
       total: totalRevenue,
-      transactions: txs.length,
+      transactions: paidTransactions.length,
       activeUsers,
     })
 
@@ -304,7 +298,10 @@ export default function DashboardPage() {
         setLoading(true)
         setErrorMsg(null)
 
-        const [txs, activeUsers] = await Promise.all([fetchTransactionsOnce(), fetchActiveUsersCount()])
+        const [txs, activeUsers] = await Promise.all([
+          fetchTransactionsOnce(),
+          fetchActiveUsersCount(),
+        ])
 
         if (cancelled) return
         computeAllFromTransactions(txs, activeUsers)
@@ -320,15 +317,13 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <div className="space-y-8">
-      {/* HEADER */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-gray-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">
             Overview
           </h1>
           <p className="text-sm text-gray-500">Dashboard analytics summary</p>
@@ -339,14 +334,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ERROR */}
       {errorMsg ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {errorMsg}
         </div>
       ) : null}
 
-      {/* META CARDS */}
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {loading ? (
           <>
@@ -367,17 +360,16 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* CHARTS */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel
           title="Sales by Product"
-          subtitle="Total transaksi per produk (data dari transaksi)"
-          right={<span className="text-xs text-gray-400">Today</span>}
+          subtitle="Total transaksi per produk (data dari transaksi paid)"
+          right={<span className="text-xs text-gray-400">All Time</span>}
           className="h-[280px] lg:h-[320px]"
         >
           {loading ? (
             <ChartSkeleton />
-          ) : dailyChart ? (
+          ) : dailyChart && dailyChart.labels.length > 0 ? (
             <Bar data={dailyChart} options={chartOptionsCount} />
           ) : (
             <div className="text-sm text-gray-400">No data.</div>
@@ -386,7 +378,7 @@ export default function DashboardPage() {
 
         <Panel
           title="Monthly Revenue"
-          subtitle="Akumulasi revenue per bulan (tahun berjalan dari semua transaksi)"
+          subtitle="Akumulasi revenue per bulan (tahun berjalan dari transaksi paid)"
           right={<span className="text-xs text-gray-400">Year</span>}
           className="h-[280px] lg:h-[320px]"
         >
@@ -400,7 +392,6 @@ export default function DashboardPage() {
         </Panel>
       </div>
 
-      {/* ACCOUNT STATUS */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
           <>
