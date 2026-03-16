@@ -100,8 +100,53 @@ export default function TransactionsPage() {
   }
 
   function getStatus(t: any) {
-    if (t.status) return t.status;
-    return "unknown";
+    const soldAt = Array.isArray(t.product_accounts)
+      ? t.product_accounts?.[0]?.sold_at
+      : t.product_accounts?.sold_at;
+
+    const baseDate = soldAt || t.purchased_at || t.created_at;
+
+    if (!baseDate) return "unknown";
+
+    const start = new Date(baseDate);
+    const now = new Date();
+
+    const startDateOnly = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate()
+    );
+
+    const nowDateOnly = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+
+    const diffDays = Math.floor(
+      (nowDateOnly.getTime() - startDateOnly.getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    if (diffDays <= 27) return "active";
+    if (diffDays <= 30) return "expiring";
+    return "expired";
+  }
+
+  function getStatusBadgeClass(status: string) {
+    if (status === "active") {
+      return "bg-green-100 text-green-700";
+    }
+
+    if (status === "expiring") {
+      return "bg-yellow-100 text-yellow-700";
+    }
+
+    if (status === "expired") {
+      return "bg-red-100 text-red-700";
+    }
+
+    return "bg-gray-100 text-gray-700";
   }
 
   async function exportExcel() {
@@ -113,24 +158,30 @@ export default function TransactionsPage() {
     }
 
     const rows =
-      data?.map((t: any) => ({
-        Invoice: t.invoice || "-",
-        TrxCode: t.trx_code || "-",
-        Product: t.products?.name || "-",
-        Email: t.product_accounts?.email || "-",
-        Password: t.product_accounts?.password || "-",
-        PIN: t.product_accounts?.pin || "-",
-        Price: t.price || 0,
-        UserID: t.user_id || "-",
-        PaymentMethod: t.payment_method || "-",
-        Status: getStatus(t),
-        PurchasedAt: t.purchased_at
-          ? new Date(t.purchased_at).toLocaleString()
-          : "-",
-        CreatedAt: t.created_at
-          ? new Date(t.created_at).toLocaleString()
-          : "-",
-      })) || [];
+      data?.map((t: any) => {
+        const pa = Array.isArray(t.product_accounts)
+          ? t.product_accounts?.[0]
+          : t.product_accounts;
+
+        return {
+          Invoice: t.invoice || "-",
+          TrxCode: t.trx_code || "-",
+          Product: t.products?.name || "-",
+          Email: pa?.email || "-",
+          Password: pa?.password || "-",
+          PIN: pa?.pin || "-",
+          Price: t.price || 0,
+          UserID: t.user_id || "-",
+          PaymentMethod: t.payment_method || "-",
+          Status: getStatus(t),
+          PurchasedAt: t.purchased_at
+            ? new Date(t.purchased_at).toLocaleString()
+            : "-",
+          CreatedAt: t.created_at
+            ? new Date(t.created_at).toLocaleString()
+            : "-",
+        };
+      }) || [];
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
@@ -258,27 +309,43 @@ export default function TransactionsPage() {
                 </td>
               </tr>
             ) : (
-              transactions.map((t, i) => (
-                <tr key={t.id} className="border-b">
-                  <td className="p-3">{(page - 1) * limit + i + 1}</td>
-                  <td className="p-3">{t.invoice || "-"}</td>
-                  <td className="p-3">{t.products?.name || "-"}</td>
-                  <td className="p-3">{t.product_accounts?.email || "-"}</td>
-                  <td className="p-3">{t.product_accounts?.password || "-"}</td>
-                  <td className="p-3">{t.product_accounts?.pin || "-"}</td>
-                  <td className="p-3">
-                    Rp {Number(t.price || 0).toLocaleString("id-ID")}
-                  </td>
-                  <td className="p-3">{t.user_id}</td>
-                  <td className="p-3">{t.payment_method || "-"}</td>
-                  <td className="p-3">{getStatus(t)}</td>
-                  <td className="p-3">
-                    {t.created_at
-                      ? new Date(t.created_at).toLocaleString()
-                      : "-"}
-                  </td>
-                </tr>
-              ))
+              transactions.map((t, i) => {
+                const pa = Array.isArray(t.product_accounts)
+                  ? t.product_accounts?.[0]
+                  : t.product_accounts;
+
+                const status = getStatus(t);
+
+                return (
+                  <tr key={t.id} className="border-b">
+                    <td className="p-3">{(page - 1) * limit + i + 1}</td>
+                    <td className="p-3">{t.invoice || "-"}</td>
+                    <td className="p-3">{t.products?.name || "-"}</td>
+                    <td className="p-3">{pa?.email || "-"}</td>
+                    <td className="p-3">{pa?.password || "-"}</td>
+                    <td className="p-3">{pa?.pin || "-"}</td>
+                    <td className="p-3">
+                      Rp {Number(t.price || 0).toLocaleString("id-ID")}
+                    </td>
+                    <td className="p-3">{t.user_id}</td>
+                    <td className="p-3">{t.payment_method || "-"}</td>
+                    <td className="p-3">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-medium ${getStatusBadgeClass(
+                          status
+                        )}`}
+                      >
+                        {status}
+                      </span>
+                    </td>
+                    <td className="p-3">
+                      {t.created_at
+                        ? new Date(t.created_at).toLocaleString()
+                        : "-"}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
