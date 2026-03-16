@@ -20,12 +20,14 @@ export default function SalesPage() {
   }, []);
 
   const fetchStats = async () => {
-    const todayStart = new Date().toISOString().split("T")[0];
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
     const { count: today, error: todayError } = await supabase
       .from("transactions")
       .select("*", { count: "exact", head: true })
-      .gte("created_at", todayStart);
+      .eq("status", "paid")
+      .gte("created_at", todayStart.toISOString());
 
     if (todayError) console.error("today count error:", todayError);
 
@@ -36,6 +38,7 @@ export default function SalesPage() {
     const { count: month, error: monthError } = await supabase
       .from("transactions")
       .select("*", { count: "exact", head: true })
+      .eq("status", "paid")
       .gte("created_at", monthStart.toISOString());
 
     if (monthError) console.error("month count error:", monthError);
@@ -45,19 +48,21 @@ export default function SalesPage() {
     const { count: year, error: yearError } = await supabase
       .from("transactions")
       .select("*", { count: "exact", head: true })
+      .eq("status", "paid")
       .gte("created_at", yearStart.toISOString());
 
     if (yearError) console.error("year count error:", yearError);
 
     const { data: revData, error: revError } = await supabase
       .from("transactions")
-      .select("amount");
+      .select("price")
+      .eq("status", "paid");
 
     if (revError) console.error("revenue error:", revError);
 
     let revenue = 0;
     revData?.forEach((r: any) => {
-      revenue += Number(r.amount);
+      revenue += Number(r.price || 0);
     });
 
     setStats({
@@ -71,7 +76,17 @@ export default function SalesPage() {
   const fetchRecent = async () => {
     const { data, error } = await supabase
       .from("transactions")
-      .select("id, user_id, amount, type, note, created_at")
+      .select(`
+        id,
+        invoice,
+        user_id,
+        price,
+        payment_method,
+        status,
+        created_at,
+        products(name)
+      `)
+      .eq("status", "paid")
       .order("created_at", { ascending: false })
       .limit(10);
 
@@ -89,7 +104,11 @@ export default function SalesPage() {
   };
 
   return (
-    <div className={`${dark ? "bg-gray-900 text-white" : "bg-gray-100 text-black"} min-h-screen p-8`}>
+    <div
+      className={`${
+        dark ? "bg-gray-900 text-white" : "bg-gray-100 text-black"
+      } min-h-screen p-8`}
+    >
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Sales Dashboard</h1>
 
@@ -128,7 +147,9 @@ export default function SalesPage() {
 
         <div className={`${dark ? "bg-gray-800" : "bg-white"} p-6 rounded-xl shadow`}>
           <div className="text-gray-400">Revenue</div>
-          <div className="text-2xl font-bold">Rp {stats.revenue.toLocaleString()}</div>
+          <div className="text-2xl font-bold">
+            Rp {stats.revenue.toLocaleString("id-ID")}
+          </div>
         </div>
       </div>
 
@@ -139,27 +160,43 @@ export default function SalesPage() {
           <thead>
             <tr className="border-b">
               <th className="p-2 text-left">No</th>
-              <th className="p-2 text-left">ID Transaksi</th>
-              <th className="p-2 text-left">Tanggal Penjualan</th>
-              <th className="p-2 text-left">Type</th>
-              <th className="p-2 text-left">Note</th>
-              <th className="p-2 text-left">Nominal</th>
-              <th className="p-2 text-left">ID Pembeli</th>
+              <th className="p-2 text-left">Invoice</th>
+              <th className="p-2 text-left">Tanggal</th>
+              <th className="p-2 text-left">Produk</th>
+              <th className="p-2 text-left">Harga</th>
+              <th className="p-2 text-left">Payment</th>
+              <th className="p-2 text-left">Status</th>
+              <th className="p-2 text-left">User ID</th>
             </tr>
           </thead>
 
           <tbody>
-            {recent.map((t, index) => (
-              <tr key={t.id} className="border-b">
-                <td className="p-2">{index + 1}</td>
-                <td className="p-2">{t.id}</td>
-                <td className="p-2">{new Date(t.created_at).toLocaleString()}</td>
-                <td className="p-2">{t.type}</td>
-                <td className="p-2">{t.note}</td>
-                <td className="p-2">Rp {Number(t.amount).toLocaleString()}</td>
-                <td className="p-2">{t.user_id}</td>
+            {recent.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="p-4 text-center">
+                  Tidak ada transaksi.
+                </td>
               </tr>
-            ))}
+            ) : (
+              recent.map((t, index) => (
+                <tr key={t.id} className="border-b">
+                  <td className="p-2">{index + 1}</td>
+                  <td className="p-2">{t.invoice || "-"}</td>
+                  <td className="p-2">
+                    {t.created_at
+                      ? new Date(t.created_at).toLocaleString()
+                      : "-"}
+                  </td>
+                  <td className="p-2">{t.products?.name || "-"}</td>
+                  <td className="p-2">
+                    Rp {Number(t.price || 0).toLocaleString("id-ID")}
+                  </td>
+                  <td className="p-2">{t.payment_method || "-"}</td>
+                  <td className="p-2">{t.status || "-"}</td>
+                  <td className="p-2">{t.user_id}</td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
