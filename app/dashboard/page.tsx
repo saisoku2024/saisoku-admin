@@ -21,14 +21,17 @@ type TxRow = {
   created_at: string | null
   expired_at: string | null
   status: string | null
-  products?: { name: string | null } | null
+  products?: {
+    name: string | null
+    modal: number | null
+  } | null
 }
 
 function currencyIDR(v: number) {
   return `Rp ${v.toLocaleString("id-ID")}`
 }
 
-/** ---------- UI Primitives (konsisten) ---------- */
+/** ---------- UI Primitives ---------- */
 function Panel({
   title,
   subtitle,
@@ -106,11 +109,17 @@ export default function DashboardPage() {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null)
 
   const [meta, setMeta] = useState({
-    today: 0,
-    month: 0,
-    total: 0,
+    salesToday: 0,
+    salesMonth: 0,
+    revenueMonth: 0,
+    revenueYear: 0,
     transactions: 0,
     activeUsers: 0,
+    bannedUsers: 0,
+    modalMonth: 0,
+    modalYear: 0,
+    profitMonth: 0,
+    profitYear: 0,
   })
 
   const [status, setStatus] = useState({
@@ -145,8 +154,12 @@ export default function DashboardPage() {
       scales: {
         x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } },
         y: {
+          beginAtZero: true,
           grid: { color: "rgba(0,0,0,0.06)" },
-          ticks: { precision: 0, callback: (v: any) => Number(v).toLocaleString("id-ID") },
+          ticks: {
+            precision: 0,
+            callback: (v: any) => Number(v).toLocaleString("id-ID"),
+          },
         },
       },
     }),
@@ -171,6 +184,7 @@ export default function DashboardPage() {
       scales: {
         x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkip: true } },
         y: {
+          beginAtZero: true,
           grid: { color: "rgba(0,0,0,0.06)" },
           ticks: {
             callback: (v: any) => Number(v).toLocaleString("id-ID"),
@@ -184,33 +198,54 @@ export default function DashboardPage() {
   async function fetchTransactionsOnce(): Promise<TxRow[]> {
     const { data, error } = await supabase
       .from("transactions")
-      .select("price,created_at,expired_at,status,products(name)")
+      .select("price,created_at,expired_at,status,products(name,modal)")
       .order("created_at", { ascending: false })
 
     if (error) throw error
     return (data ?? []) as unknown as TxRow[]
   }
 
-  async function fetchActiveUsersCount(): Promise<number> {
-    const { count, error } = await supabase
-      .from("users")
-      .select("*", { count: "exact", head: true })
-      .eq("is_active", true)
+  async function fetchUserCounts(): Promise<{ activeUsers: number; bannedUsers: number }> {
+    const [{ count: activeCount, error: activeError }, { count: bannedCount, error: bannedError }] =
+      await Promise.all([
+        supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .eq("is_active", true),
+        supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .eq("is_banned", true),
+      ])
 
-    if (error) throw error
-    return count ?? 0
+    if (activeError) throw activeError
+    if (bannedError) throw bannedError
+
+    return {
+      activeUsers: activeCount ?? 0,
+      bannedUsers: bannedCount ?? 0,
+    }
   }
 
-  function computeAllFromTransactions(txs: TxRow[], activeUsers: number) {
+  function computeAllFromTransactions(
+    txs: TxRow[],
+    activeUsers: number,
+    bannedUsers: number
+  ) {
     const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth()
     const todayStr = now.toDateString()
 
-    let todayRevenue = 0
-    let monthRevenue = 0
-    let totalRevenue = 0
+    let salesToday = 0
+    let salesMonth = 0
+    let revenueMonth = 0
+    let revenueYear = 0
+    let modalMonth = 0
+    let modalYear = 0
 
     const monthlyRevenue = new Array(12).fill(0) as number[]
-    const productCounts: Record<string, number> = {}
+    const todayProductCounts: Record<string, number> = {}
 
     let active = 0
     let expiring = 0
@@ -220,21 +255,31 @@ export default function DashboardPage() {
 
     for (const t of paidTransactions) {
       const price = Number(t.price ?? 0)
+      const modal = Number(t.products?.modal ?? 0)
       const created = t.created_at ? new Date(t.created_at) : null
-
-      totalRevenue += price
+      const productName = t.products?.name?.trim() || "Unknown"
 
       if (created && !Number.isNaN(created.getTime())) {
-        monthlyRevenue[created.getMonth()] += price
+        const year = created.getFullYear()
+        const month = created.getMonth()
 
-        if (created.toDateString() === todayStr) todayRevenue += price
-        if (created.getMonth() === now.getMonth() && created.getFullYear() === now.getFullYear()) {
-          monthRevenue += price
+        if (year === currentYear) {
+          revenueYear += price
+          modalYear += modal
+          monthlyRevenue[month] += price
+        }
+
+        if (year === currentYear && month === currentMonth) {
+          salesMonth += 1
+          revenueMonth += price
+          modalMonth += modal
+        }
+
+        if (created.toDateString() === todayStr) {
+          salesToday += 1
+          todayProductCounts[productName] = (todayProductCounts[productName] || 0) + 1
         }
       }
-
-      const productName = t.products?.name?.trim() || "Unknown"
-      productCounts[productName] = (productCounts[productName] || 0) + 1
 
       if (t.expired_at) {
         const expiredAt = new Date(t.expired_at)
@@ -250,15 +295,15 @@ export default function DashboardPage() {
       }
     }
 
-    const labels = Object.keys(productCounts)
-    const values = Object.values(productCounts)
+    const productLabels = Object.keys(todayProductCounts)
+    const productValues = Object.values(todayProductCounts)
 
     setDailyChart({
-      labels,
+      labels: productLabels,
       datasets: [
         {
-          label: "Sales by Product",
-          data: values,
+          label: "Daily Sales by Product",
+          data: productValues,
           borderRadius: 8,
           backgroundColor: "rgba(59,130,246,0.85)",
           hoverBackgroundColor: "rgba(59,130,246,1)",
@@ -280,11 +325,17 @@ export default function DashboardPage() {
     })
 
     setMeta({
-      today: todayRevenue,
-      month: monthRevenue,
-      total: totalRevenue,
+      salesToday,
+      salesMonth,
+      revenueMonth,
+      revenueYear,
       transactions: paidTransactions.length,
       activeUsers,
+      bannedUsers,
+      modalMonth,
+      modalYear,
+      profitMonth: revenueMonth - modalMonth,
+      profitYear: revenueYear - modalYear,
     })
 
     setStatus({ active, expiring, expired })
@@ -298,13 +349,19 @@ export default function DashboardPage() {
         setLoading(true)
         setErrorMsg(null)
 
-        const [txs, activeUsers] = await Promise.all([
+        const [txs, userCounts] = await Promise.all([
           fetchTransactionsOnce(),
-          fetchActiveUsersCount(),
+          fetchUserCounts(),
         ])
 
         if (cancelled) return
-        computeAllFromTransactions(txs, activeUsers)
+
+        computeAllFromTransactions(
+          txs,
+          userCounts.activeUsers,
+          userCounts.bannedUsers
+        )
+
         setUpdatedAt(new Date())
       } catch (e: any) {
         if (cancelled) return
@@ -340,9 +397,12 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {loading ? (
           <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
@@ -351,20 +411,55 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <StatCard label="Revenue Today" value={currencyIDR(meta.today)} accentClass="text-blue-600" />
-            <StatCard label="Revenue Month" value={currencyIDR(meta.month)} accentClass="text-green-600" />
-            <StatCard label="Revenue Total" value={currencyIDR(meta.total)} accentClass="text-purple-600" />
-            <StatCard label="Transactions" value={meta.transactions.toLocaleString("id-ID")} />
-            <StatCard label="Active Users" value={meta.activeUsers.toLocaleString("id-ID")} accentClass="text-emerald-600" />
+            <StatCard
+              label="Jumlah Penjualan Hari Ini"
+              value={meta.salesToday.toLocaleString("id-ID")}
+              accentClass="text-blue-600"
+            />
+            <StatCard
+              label="Jumlah Penjualan Bulan Ini"
+              value={meta.salesMonth.toLocaleString("id-ID")}
+              accentClass="text-indigo-600"
+            />
+            <StatCard
+              label="Revenue Bulan Ini"
+              value={currencyIDR(meta.revenueMonth)}
+              accentClass="text-green-600"
+            />
+            <StatCard
+              label="Revenue Tahun Ini"
+              value={currencyIDR(meta.revenueYear)}
+              accentClass="text-emerald-600"
+            />
+            <StatCard
+              label="Transactions"
+              value={meta.transactions.toLocaleString("id-ID")}
+              accentClass="text-gray-900"
+            />
+            <StatCard
+              label="Active User"
+              value={meta.activeUsers.toLocaleString("id-ID")}
+              accentClass="text-cyan-600"
+            />
+            <StatCard
+              label="Banned User"
+              value={meta.bannedUsers.toLocaleString("id-ID")}
+              accentClass="text-red-600"
+            />
+            <StatCard
+              label="Profit Bulan Ini"
+              value={currencyIDR(meta.profitMonth)}
+              accentClass="text-purple-600"
+            />
           </>
         )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel
-          title="Sales by Product"
-          subtitle="Total transaksi per produk (data dari transaksi paid)"
-          right={<span className="text-xs text-gray-400">All Time</span>}
+          title="Daily Sales by Product"
+          subtitle="Jumlah transaksi paid hari ini per produk"
+          right={<span className="text-xs text-gray-400">Today</span>}
           className="h-[280px] lg:h-[320px]"
         >
           {loading ? (
@@ -372,13 +467,13 @@ export default function DashboardPage() {
           ) : dailyChart && dailyChart.labels.length > 0 ? (
             <Bar data={dailyChart} options={chartOptionsCount} />
           ) : (
-            <div className="text-sm text-gray-400">No data.</div>
+            <div className="text-sm text-gray-400">No data for today.</div>
           )}
         </Panel>
 
         <Panel
           title="Monthly Revenue"
-          subtitle="Akumulasi revenue per bulan (tahun berjalan dari transaksi paid)"
+          subtitle="Akumulasi revenue Jan–Des tahun berjalan dari transaksi paid"
           right={<span className="text-xs text-gray-400">Year</span>}
           className="h-[280px] lg:h-[320px]"
         >
@@ -392,18 +487,58 @@ export default function DashboardPage() {
         </Panel>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {loading ? (
           <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
           </>
         ) : (
           <>
-            <StatCard label="Active Accounts" value={status.active.toLocaleString("id-ID")} accentClass="text-green-600" />
-            <StatCard label="Expiring Accounts" value={status.expiring.toLocaleString("id-ID")} accentClass="text-yellow-600" />
-            <StatCard label="Expired Accounts" value={status.expired.toLocaleString("id-ID")} accentClass="text-red-600" />
+            <StatCard
+              label="Modal Bulan Ini"
+              value={currencyIDR(meta.modalMonth)}
+              accentClass="text-orange-600"
+            />
+            <StatCard
+              label="Profit Tahun Ini"
+              value={currencyIDR(meta.profitYear)}
+              accentClass="text-fuchsia-600"
+            />
+            <StatCard
+              label="Modal Tahun Ini"
+              value={currencyIDR(meta.modalYear)}
+              accentClass="text-amber-600"
+            />
+            <StatCard
+              label="Active Accounts"
+              value={status.active.toLocaleString("id-ID")}
+              accentClass="text-green-600"
+            />
+            <StatCard
+              label="Expiring Accounts"
+              value={status.expiring.toLocaleString("id-ID")}
+              accentClass="text-yellow-600"
+            />
+            <StatCard
+              label="Expired Accounts"
+              value={status.expired.toLocaleString("id-ID")}
+              accentClass="text-red-600"
+            />
+            <StatCard
+              label="Average Revenue / Transaction"
+              value={
+                meta.transactions > 0
+                  ? currencyIDR(Math.round(meta.revenueYear / meta.transactions))
+                  : currencyIDR(0)
+              }
+              accentClass="text-sky-600"
+            />
           </>
         )}
       </div>
