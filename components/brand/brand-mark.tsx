@@ -15,7 +15,7 @@ export function BrandMark({
 }: BrandMarkProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gray-950 text-white shadow-lg shadow-gray-950/20 ring-1 ring-white/10">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg shadow-black/20 ring-1 ring-white/10">
         <Activity className="h-5 w-5" />
       </div>
 
@@ -24,7 +24,7 @@ export function BrandMark({
           <div
             className={cn(
               "text-sm font-semibold uppercase tracking-[0.24em]",
-              inverted ? "text-slate-300" : "text-gray-500"
+              inverted ? "text-slate-300" : "text-slate-500"
             )}
           >
             SIGHT
@@ -32,7 +32,7 @@ export function BrandMark({
           <div
             className={cn(
               "text-lg font-semibold tracking-tight",
-              inverted ? "text-white" : "text-gray-950"
+              inverted ? "text-white" : "text-slate-950"
             )}
           >
             Saisoku Integrated Gateway &amp; Monitoring
