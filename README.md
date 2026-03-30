@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Saisoku Admin Dashboard
 
-## Getting Started
+Dashboard admin untuk reporting penjualan, pengelolaan stock account, transaksi, dan user management berbasis Next.js + Supabase.
 
-First, run the development server:
+## Improvement yang sudah diterapkan
+
+- Login page dibuat lebih profesional dan siap dipakai untuk admin internal.
+- Layout dashboard dirapikan dengan sidebar responsif, topbar, grouping menu, dan auth guard.
+- Struktur kode dipisah ke komponen reusable (`components/auth`, `components/dashboard`, `components/brand`).
+- File backup / file sampah yang tidak terpakai dibersihkan.
+- Root route diarahkan ke login, lalu redirect otomatis ke dashboard jika sesi masih aktif.
+
+## Struktur utama
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+app/
+  dashboard/
+  login/
+components/
+  auth/
+  brand/
+  dashboard/
+lib/
+  navigation.ts
+  supabaseClient.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Menjalankan project
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Lalu buka `http://localhost:3000`.
 
-## Learn More
+## Environment
 
-To learn more about Next.js, take a look at the following resources:
+Buat file `.env.local`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Catatan lanjutan
 
-## Deploy on Vercel
+Tahap berikut yang disarankan:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Refactor halaman `products`, `stocks`, `transactions`, dan `users` ke komponen reusable supaya style benar-benar konsisten.
+2. Tambahkan server-side route protection / middleware jika nanti ingin harden auth lebih jauh.
+3. Rapikan type data Supabase agar penggunaan `any` bisa dikurangi.

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
 import {
@@ -40,8 +40,8 @@ function Panel({
 }: {
   title: string
   subtitle?: string
-  right?: React.ReactNode
-  children: React.ReactNode
+  right?: ReactNode
+  children: ReactNode
   className?: string
 }) {
   return (
@@ -64,7 +64,7 @@ function StatCard({
   accentClass = "text-gray-900",
 }: {
   label: string
-  value: React.ReactNode
+  value: ReactNode
   accentClass?: string
 }) {
   return (
