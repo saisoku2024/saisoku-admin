@@ -80,7 +80,7 @@ export function AuthShell({
         </section>
       </div>
       <footer className="mx-auto mt-4 flex max-w-7xl flex-col gap-2 px-1 text-center text-xs text-slate-300 sm:flex-row sm:items-center sm:justify-between sm:text-left">
-        <p>© 2026 Saisoku Systems · INSIGHT Platform · Internal Use Only</p>
+        <p>© 2026 SAISOKU.ID Systems · INSIGHT Platform · Internal Use Only</p>
         <p className="text-slate-400">Integrated Sales Intelligence &amp; Growth Hub</p>
       </footer>
     </div>
