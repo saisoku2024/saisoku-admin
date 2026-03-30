@@ -27,7 +27,7 @@ export function BrandMark({
               inverted ? "text-slate-300" : "text-gray-500"
             )}
           >
-            Saisoku
+            SIGHT
           </div>
           <div
             className={cn(
@@ -35,7 +35,7 @@ export function BrandMark({
               inverted ? "text-white" : "text-gray-950"
             )}
           >
-            Sales Admin Console
+            Saisoku Integrated Gateway &amp; Monitoring
           </div>
         </div>
       ) : null}

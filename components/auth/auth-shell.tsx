@@ -5,18 +5,18 @@ import { BrandMark } from "@/components/brand/brand-mark"
 
 const highlights = [
   {
-    title: "Live sales reporting",
-    description: "Rekap aktivitas penjualan, revenue, dan performa tim dalam satu panel yang rapi.",
+    title: "Sales Report",
+    description: "Pantau revenue, transaksi, dan performa penjualan dalam satu dashboard terpusat.",
     icon: BarChart3,
   },
   {
-    title: "Secure admin access",
-    description: "Akses internal lebih aman dengan Supabase Auth dan role-based session management.",
+    title: "Account Monitoring",
+    description: "Kelola akses admin dan monitor aktivitas akun internal dengan kontrol yang lebih aman.",
     icon: ShieldCheck,
   },
   {
-    title: "Faster operations",
-    description: "Kelola transaksi, stok account, produk, dan user tanpa pindah-pindah tools.",
+    title: "Stock Management",
+    description: "Lacak ketersediaan produk, pergerakan stok, dan kebutuhan operasional dari satu panel.",
     icon: Sparkles,
   },
 ]
@@ -86,8 +86,8 @@ export function AuthShell({
       </div>
 
       <footer className="mx-auto mt-4 flex max-w-7xl flex-col gap-2 px-1 text-center text-xs text-slate-300 sm:flex-row sm:items-center sm:justify-between sm:text-left">
-        <p>© 2026 SAISOKU ID. Sales Reporting Dashboard for authorized internal team.</p>
-        <p className="text-slate-400">Secure access · Supabase Auth · Admin Portal v1.1</p>
+        <p>© 2026 SAISOKU ID · SIGHT Platform · Internal Use Only.</p>
+        <p className="text-slate-400">Saisoku Integrated Gateway & Monitoring · Authorized Access Only</p>
       </footer>
     </div>
   )

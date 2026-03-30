@@ -177,9 +177,9 @@ export default function LoginPage() {
 
   return (
     <AuthShell
-      badge="Internal sales reporting portal"
-      title="Welcome back to SAISOKU admin dashboard"
-      description="Masuk ke portal reporting untuk memantau penjualan, mengelola transaksi, dan menjaga operasional tim tetap cepat, aman, dan terstruktur."
+      badge="Saisoku integrated gateway & monitoring"
+      title="Welcome back to SIGHT admin workspace"
+      description="Akses platform terpusat untuk melihat sales report, memantau akun internal, dan mengelola stok operasional dalam satu workspace yang aman."
       rightTop={<AuthThemeToggle isDark={isDark} onToggle={toggleTheme} />}
     >
       <div>
@@ -190,7 +190,7 @@ export default function LoginPage() {
           Sign in to your workspace
         </h2>
         <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-          Gunakan akun admin resmi untuk mengakses sales reporting dashboard dan management panel.
+          Gunakan akun admin resmi untuk mengakses SIGHT dan mengelola sales report, account monitoring, serta stock management.
         </p>
       </div>
 
@@ -204,7 +204,7 @@ export default function LoginPage() {
             <input
               id="email"
               type="email"
-              placeholder="admin@saisoku.id"
+              placeholder="admin@sight.saisoku.id"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="h-14 w-full border-0 bg-transparent text-sm outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
